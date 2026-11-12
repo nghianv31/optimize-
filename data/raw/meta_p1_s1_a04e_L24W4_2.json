@@ -1,0 +1,47 @@
+{
+  "config": {
+    "policy": "p1",
+    "scenario": "s1",
+    "device": "a04e",
+    "run": 2,
+    "seed": 42,
+    "workers": 4,
+    "chunkMs": 10,
+    "load": 24.0,
+    "agingMs": 3000,
+    "settleS": 10,
+    "warmupS": 10,
+    "durationS": 60,
+    "graceS": 30,
+    "tag": "L24W4"
+  },
+  "refreshHz": 60.0,
+  "budgetMs": 16.666666666666668,
+  "itersPerMs": 100000,
+  "measuredItersPerMs": 108335,
+  "processors": 8,
+  "os": "UP1A.231005.007.A042FXXSHEZH1",
+  "dart": "3.11.0 (stable) (Mon Feb 9 00:38:07 2026 -0800) on \"android_arm64\"",
+  "mode": "profile",
+  "runStartUs": 2037644000809,
+  "frameSummary": {
+    "frames": 3571,
+    "dropPct": 11.17,
+    "dropTotalPct": 98.4,
+    "p95Ms": 21.47,
+    "p99Ms": 22.87,
+    "buildP95Ms": 7.59,
+    "rasterP95Ms": 16.87,
+    "extremeFrames": 0,
+    "missedPct": 0.81,
+    "gapP95Ms": 18.26,
+    "gapP99Ms": 18.32
+  },
+  "taskSummary": {
+    "total": 7723,
+    "done": 7723,
+    "makespanMs": 62798,
+    "criticalLatencyP95Ms": 1302,
+    "bgMaxWaitMs": 2552
+  }
+}
