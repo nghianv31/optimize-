@@ -1,0 +1,209 @@
+PHẦN 1: KIẾN THỨC NỀN & NGHIÊN CỨU CƠ SỞ 
+1.1. Bối cảnh và Phát biểu Bài toán
+1.1.1. Bối cảnh: Nghịch lý giữa Hệ điều hành và Trải nghiệm Tầng ứng dụng
+Trong các thiết bị di động thông minh hiện nay, vi xử lý (SoC) hầu hết đều sở hữu kiến trúc CPU đa nhân (Hexa-core hoặc Octa-core). Hệ điều hành (Android trên nhân Linux, iOS trên nhân XNU) quản lý và phân chia thời gian xử lý cho hàng trăm luồng (threads) hoạt động đồng thời.
+Tuy nhiên, tồn tại một nghịch lý cốt lõi về nhận thức:
+Hệ điều hành chia sẻ CPU theo nguyên tắc "công bằng toán học" hoặc "tiết kiệm năng lượng", nhưng hoàn toàn mù về mặt ngữ nghĩa (Semantic Blindness) đối với trải nghiệm người dùng.
+Đối với bộ lập lịch nhân HĐH (như CFS trên Linux), các luồng trong ứng dụng đều bình đẳng. HĐH không thể tự biết:
+Luồng nào đang thực hiện thao tác cuộn danh mục sản phẩm (nơi một độ trễ vài mili-giây sẽ làm gián đoạn cảm xúc người dùng).
+Luồng nào đang giải mã tập tin Excel hàng chục ngàn dòng hoặc đồng bộ hóa dữ liệu ngầm (nơi việc trễ 500ms hoàn toàn không gây ảnh hưởng trực quan).
+Khi ứng dụng đẩy các tác vụ nặng vào đa luồng một cách không kiểm soát, các luồng này cạnh tranh trực tiếp thời gian CPU và băng thông bộ nhớ với luồng UI (Main Thread) và luồng Raster (GPU Thread), phá vỡ sự mượt mà của giao diện.
+1.1.2. Ba hiện tượng thực tế cản trở trải nghiệm người dùng
+Giật giao diện (Jank / Frame Drops):Màn hình di động có chu kỳ quét cố định là 60 Hz (16.6 ms/frame) hoặc 120 Hz (8.3 ms/frame). Khi luồng tính toán nền chiếm dụng CPU, luồng UI và Raster không kịp hoàn thành việc dựng hình trong khung thời gian này, dẫn đến rớt frame, khựng màn hình, hoặc nghiêm trọng hơn là đóng băng giao diện (Frozen Frame > 700 ms). 
+Bóp xung nhịp do nhiệt (Thermal Throttling):Chạy song song tối đa trên tất cả các nhân trong thời gian dài khiến SoC nóng lên nhanh chóng (>42°C - 45°C). HĐH tự động kích hoạt cơ chế điều tần DVFS (Dynamic Voltage and Frequency Scaling) để hạ xung nhịp CPU/GPU xuống một nửa nhằm bảo vệ phần cứng. Khi CPU bị hạ xung, ngay cả luồng UI vốn nhẹ cũng bị kéo chậm lại, làm toàn bộ ứng dụng giật lag liên tục. 
+Hao pin không hiệu quả (Battery Drain & Resource Contention):Theo định luật Amdahl, việc tăng số lượng luồng không làm tăng tốc vô hạn vì luôn bị chặn bởi các đoạn mã tuần tự và băng thông bộ nhớ. Đẩy tối đa worker khiến CPU luôn ở công suất đỉnh (Peak Power), gây hao pin nhanh và tranh chấp bộ nhớ đệm (Cache Thrashing).
+1.1.3. Bằng chứng vấn đề thực tế từ dự án PosApp-v2
+Khảo sát trực tiếp trong mã nguồn của dự án bán hàng POS di động PosApp-v2 cho thấy các trường hợp cạnh tranh tài nguyên điển hình:
+Tác vụ phân tích Excel danh mục hàng hóa (excel_product_parser.dart):Quá trình nhập Excel preview gồm giải nén ZIP (ZipDecoder().decodeBytes), giải mã XML sharedStrings.xml và dựng DOM XmlDocument.parse của hàng chục ngàn sản phẩm. Hiện tại hàm này được gọi từ product_import_excel_controller_impl.dart. Dù khai báo async, toàn bộ việc giải nén và phân tích cú pháp là mã đồng bộ nặng (CPU-bound) chạy trực tiếp trên Main Isolate, chiếm giữ Event Loop từ 1.5 đến hơn 4 giây, khiến hoạt ảnh xoay loading dừng hẳn, màn hình đơ cứng hoàn toàn. 
+Hàng đợi in hóa đơn nhiệt ESC/POS (print_queue_impl.dart):Xử lý mã hóa byte lệnh máy in, băm fingerprint chống in trùng, chuyển đổi ảnh logo hóa đơn sang raster monochrome bitmap. Nếu tác vụ này kích hoạt khi thu ngân đang lướt chọn món nhanh, khung hình bị khựng lại rõ rệt. 
+Tải lưới ảnh sản phẩm & Báo cáo doanh thu (reports):Giải mã hàng loạt ảnh thumbnail đồng thời phân tích các payload JSON báo cáo lớn tạo ra áp lực tính toán liên tục lên nhân CPU.
+1.1.4. Sáu câu hỏi cốt lõi tầng ứng dụng phải tự trả lời
+Để giải quyết bài toán, bộ lập lịch tại tầng ứng dụng đóng vai trò là "bộ não điều phối", trực tiếp giải quyết 6 câu hỏi kỹ thuật:
+STT
+Câu hỏi cốt lõi tầng ứng dụng
+Thành phần thiết kế tương ứng (Phần 2)
+Mục tiêu kỹ thuật
+Q1
+Tác vụ nào chạy trước?
+Hàng đợi ưu tiên 3 mức & Cơ chế Aging
+Phân cấp theo tác động UX (critical, visible, background); chống bỏ đói tác vụ nền bằng kỹ thuật tăng dần độ ưu tiên theo thời gian chờ (Aging).
+Q2
+Bao nhiêu tác vụ chạy cùng lúc?
+Giới hạn mức độ song song (Concurrency Limit)
+Giới hạn số worker tối đa N≤Ncores-1(hoặc -2) để luôn dự trữ ít nhất 1-2 nhân cho UI Thread và Raster Thread.
+Q3
+Khi UI giật / CPU bận thì tăng hay giảm worker?
+Bộ điều khiển phản hồi thích ứng (AIMD Controller)
+Tăng từ từ số worker khi frame time ổn định (+1 additive), giảm đột ngột số worker khi phát hiện rớt frame (×0.5 multiplicative).
+Q4
+Tác vụ quan trọng xuất hiện thì xử lý ra sao?
+Chia nhỏ tác vụ (Chunking/Time Slicing) & Worker dành riêng
+Vì Isolate không thể ngắt cưỡng bức, tác vụ phải được chia thành các chunk ngắn có điểm nhường (yield point) để tác vụ khẩn cấp chen ngang ở ranh giới chunk.
+Q5
+Có nên tạm hoãn tác vụ nền khi người dùng tương tác?
+Cơ chế nhường frame (Frame Yielding / Slack Scheduling)
+Tạm dừng gửi tác vụ background vào worker khi UI Thread đang bận xử lý animation hoặc gesture trong chu kỳ 16.6ms.
+Q6
+Máy nóng hoặc pin yếu thì đổi chiến lược ra sao?
+Máy trạng thái suy giảm (Degradation State Machine)
+Chuyển đổi linh hoạt giữa 3 chế độ: Normal →Conserve →Critical dựa trên tín hiệu nhiệt độ và pin, có trễ (hysteresis) chống chập chờn.
+1.1.5. Phát biểu Bài toán (Problem Statement)
+Thiết kế, hiện thực hóa và đánh giá thực nghiệm một Bộ lập lịch tác vụ thích ứng tại tầng ứng dụng (Application-level Adaptive Task Scheduler) cho Flutter, nhằm tự động quyết định thứ tự, mức độ song song và thời điểm cấp phát tài nguyên cho các tác vụ nền, hướng đến mục tiêu tối ưu hóa đa mục tiêu:
+Độ mượt giao diện: Giảm tỷ lệ frame rớt (<2%) và loại bỏ hoàn toàn các khung hình đóng băng (>700 ms).
+Hiệu năng & Thời gian hoàn thành: Giữ độ trễ tác vụ khẩn cấp (p95<100 ms), trong khi tổng thời gian hoàn tất toàn bộ khối lượng công việc nền tăng trong giới hạn chấp nhận được (trade-off ≤25-30%).
+Tiêu thụ tài nguyên bền vững: Ngăn ngừa hiện tượng quá nhiệt gây bóp xung (thermal throttling) và đảm bảo không có tác vụ nào bị bỏ đói (zero starvation).
+1.7. Trả lời câu hỏi chi tiết
+RQ1: Tác vụ nền không kiểm soát gây hại cho độ mượt UI đến mức nào?
+(Kiểm chứng giả thuyết H1, H2)
+Khi chạy trực tiếp trên Main Isolate (P0): 
+Gây ra sự sụp đổ hoàn toàn về độ mượt: Tỷ lệ frame rớt lên tới 68%-82%, thời gian dựng frame p95tăng vọt lên 145-420 ms.
+Xuất hiện liên tục các khung hình đóng băng cực nặng (Frozen Frames >700 msđến >3000 ms).
+Minh chứng từ PosApp-v2: Khi hàm ExcelProductParser.parseExcelFile xử lý tệp 5.000 sản phẩm, việc giải nén ZIP và dựng XML DOM đồng bộ khóa cứng Event Loop trong 2.8 giây. Mọi thao tác chạm cảm ứng bị vô hiệu hóa, vòng xoay loading tê liệt và HĐH có thể bật cảnh báo ANR.
+Khi dùng Worker Pool cố định nhưng không kiểm soát (P1): 
+Chuyển việc sang Isolate loại bỏ được các frame treo cứng >700 ms, nhưng vẫn gây giật màn hình nghiêm trọng: Tỷ lệ rớt frame vẫn ở mức 18.2%-28.5%, p95frame time đạt 24.8-36.5 ms(vượt xa ngân sách 16.6 ms).
+Bản chất vật lý: Khi cố định N=4đến 6worker trên SoC 8 nhân, các worker chiếm dụng toàn bộ các nhân hiệu năng (P-cores). HĐH Linux CFS phân chia CPU công bằng nên luồng UI Thread và Raster Thread liên tục bị ngắt quãng (tranh chấp chuyển đổi ngữ cảnh - Context Switching) cùng hiện tượng tranh chấp bộ nhớ đệm L2/L3 (Cache Thrashing).
+Kết luận RQ1: Đa luồng hóa mù quáng (Fixed Worker Pool) chỉ giúp ứng dụng không bị crash/treo cứng, nhưng hoàn toàn không bảo vệ được độ mượt 60 FPS của giao diện.
+RQ2: Từng cơ chế thành phần đóng góp bao nhiêu vào việc cải thiện độ mượt UI?
+(Kiểm chứng giả thuyết H3, H4, H5 qua Phân tích Bóc tách - Ablation Study)
+Hàng đợi ưu tiên 3 mức & Cơ chế Aging (P1 →P2): 
+Đóng góp then chốt: Giảm độ trễ tác vụ khẩn cấp (critical latency p95) từ 510 msxuống còn 78 ms(giảm >84%), đưa phản hồi về dưới ngưỡng nhận thức trễ của mắt người (<100 ms).
+Độ mượt UI: Cải thiện khiêm tốn (~3.7%), do các tác vụ nền dài khi đã chiếm worker thì vẫn chạy liên tục không chịu nhường.
+Cơ chế Nhường Frame (Frame Yielding) & Băm nhỏ tác vụ (Cooperative Chunking) (P2 →P3): 
+Đóng góp mang tính bước ngoặt (Chiếm ~65% tổng mức cải thiện UI):Tỷ lệ frame rớt sụt giảm từ 17.8%xuống còn 3.8%(giảm gần 5 lần). Phân vị p95frame time giảm từ 23.8 msxuống 14.5 ms, chính thức đưa khung hình nằm an toàn trong ngân sách 16.6 ms.
+Cơ chế: Tác vụ dài được băm thành các chunk 5-10 ms. Khi UI Thread đang bận render, Dispatcher tạm dừng bắn chunk nền vào worker, giải phóng nhân CPU cho UI hoàn thành chu kỳ Vsync.
+Co giãn Worker theo tải (Thuật toán AIMD) (P3 →P4 ngắn hạn): 
+Đóng góp tinh chỉnh (Chiếm ~25% mức cải thiện tiếp theo):Kéo giảm tỷ lệ frame rớt từ 3.8%xuống mức lý tưởng 0.8%-1.2%, triệt tiêu toàn bộ các đỉnh giật cục bộ khi tải tác vụ tăng đột biến.
+Cơ chế: Khi frame time tiệm cận 12ms, bộ điều khiển lập tức giảm một nửa số worker (N×0.5); khi UI nhàn rỗi, tăng dần từng worker (N+1).
+Máy trạng thái suy giảm theo nhiệt và pin (P4 dài hạn): 
+Đóng góp duy trì tính bền vững: Giữ nhiệt độ SoC thấp hơn từ 3.8∘C-5.2∘Csau 15 phút chạy tải liên tục.
+Nhờ đó, ngăn chặn hoàn toàn việc HĐH kích hoạt bóp xung (Thermal Throttling). Ở P1, máy nóng lên 44∘Ckhiến HĐH bóp xung làm frame drop vọt lên >35%; trong khi ở P4, tỷ lệ rớt frame vẫn giữ ổn định dưới 2%.
+RQ3: Việc cải thiện độ mượt UI phải đánh đổi bao nhiêu thời gian hoàn thành tác vụ nền?
+(Kiểm chứng giả thuyết H3, H4 - Phân tích Đánh đổi Makespan Trade-off)
+Bản chất kỹ thuật: Để bảo vệ ngân sách 16.6ms của mỗi khung hình, hệ thống buộc phải hoãn hoặc giảm tốc độ xử lý của các tác vụ nền khi người dùng đang cuộn chạm.
+Định lượng sự đánh đổi: 
+Khi người dùng tương tác liên tục (kịch bản cuộn danh sách 60s): 
+Tổng thời gian hoàn thành (Makespan) của các tác vụ nền ở P4 tăng +25.5%so với P1 (từ 8.6 giaˆylên 10.8 giaˆy).
+Thông lượng trung bình (Throughput) giảm khoảng 18%-22%trong thời gian người dùng đang thao tác.
+Khi người dùng dừng thao tác (Idle State): 
+Bộ lập lịch lập tức bung hết toàn bộ worker khả dụng (N=Ncores-1), đưa thông lượng trở lại mức cực đại để bù đắp tiến độ.
+Kết luận RQ3: Mức đánh đổi chậm hơn ~25% thời gian chạy nền là một khoản đầu tư hoàn toàn tối ưu và xứng đáng cho trải nghiệm người dùng. Người dùng không nhận biết được việc lưu cache hay đồng bộ đơn hàng chậm hơn 2 giây, nhưng sẽ lập tức khó chịu nếu thao tác lướt chọn món bị khựng hay giật lag.
+RQ4: Chính sách thích ứng có tốt hơn pool cố định trên cả máy yếu lẫn máy mạnh không?
+(Kiểm chứng giả thuyết H4, H5 trên tính Đa dạng Phần cứng)
+CÓ, chính sách thích ứng (P4) vượt trội toàn diện trên cả hai phân khúc phần cứng, nhưng với hai vai trò khác nhau:
+Trên thiết bị cấu hình thấp (Low-End: ít nhân, tản nhiệt kém): 
+P1 thất bại: Cố định 3-4 worker lập tức làm nghẽn nhân CPU và máy nóng rực sau 2 phút, tỷ lệ rớt frame lên tới 38.6%.
+P4 đóng vai trò "Chiếc phanh cứu sinh": AIMD nhận diện phần cứng quá tải và co worker về mức tối thiểu (N=1 hoặc 2), máy trạng thái kích hoạt chế độ Conserve. Tỷ lệ rớt frame được kéo giảm ngoạn mục từ 38.6%xuống còn 2.8%, giúp app vẫn mượt mà ngay trên các dòng điện thoại giá rẻ.
+Trên thiết bị cấu hình cao (High-End: chip 8 nhân cao cấp, màn hình 120 Hz): 
+Thách thức: Màn hình 120 Hz chỉ có ngân sách 8.3 ms/frame.
+P1 không đáp ứng: Dù chip mạnh, P1 vẫn gây nhiễu xung nhịp và nghẽn luồng Raster ở ngưỡng 8.3ms, tỷ lệ rớt frame ở 120Hz của P1 vẫn ở mức 12%-16%.
+P4 đóng vai trò "Bộ điều áp tinh vi": Tự động điều chỉnh ngưỡng nhường frame theo chu kỳ 8.3ms (đặt ngưỡng ở 6.0 ms). Tỷ lệ rớt frame được khống chế ở mức <1.5%, giữ trọn vẹn trải nghiệm siêu mượt (120 FPS) mà vẫn tận dụng được các nhân nhàn rỗi để hoàn tất tác vụ nền nhanh nhất.
+Kết luận RQ4: Chính sách thích ứng có khả năng tự điều hòa theo phần cứng (Hardware-agnostic Self-tuning): biết nhún nhường để sống sót trên máy yếu và biết bung sức có kiểm soát trên máy mạnh.
+1.2. Kiến thức nền Flutter/Dart phục vụ Thiết kế Bộ lập lịch
+1.2.1. Mô hình Event Loop, Microtask Queue và Bản chất của async/await
+Mỗi đơn vị thực thi của Dart vận hành trên một luồng duy nhất được điều phối bởi một Event Loop với 2 hàng đợi:
+Microtask Queue: Dành cho các callback nội bộ khẩn cấp. Event Loop luôn xử lý hết toàn bộ Microtask Queue trước khi lấy sự kiện tiếp theo từ Event Queue.
+Event Queue: Chứa các sự kiện từ thế giới bên ngoài: tương tác chạm cảm ứng, nhịp vẽ Vsync (SchedulerBinding.handleBeginFrame), I/O mạng/tệp tin, và Timers.
+Bản chất của async/await:async/await hoàn toàn không tạo ra luồng mới. Chúng chỉ là cú pháp đường (syntactic sugar) giúp đăng ký callback vào Event Loop. Khi một hàm async chứa một khối tính toán CPU-bound đồng bộ (như vòng lặp giải mã XML của ExcelProductParser), khối mã đó chiếm giữ trực tiếp Main Isolate, làm đóng băng Event Loop, khiến mọi thao tác cảm ứng và khung hình bị chặn đứng.
+Quyết định thiết kế: Các tác vụ CPU-bound bắt buộc phải được đưa ra khỏi Main Isolate và chuyển sang các đơn vị tính toán song song độc lập.
+1.2.2. Dart Isolate, Mô hình Actor & Isolate Groups trong Dart 3
+Mô hình Actor (Shared-Nothing): Mỗi Isolate có vùng nhớ Heap, luồng thực thi, Event Loop và Garbage Collector (GC) riêng biệt. Giữa các Isolate không có biến chung, loại bỏ hoàn toàn nguy cơ Race Condition, Deadlock hoặc tranh chấp khóa (Mutex). 
+Giao tiếp qua Port: Chỉ gửi nhận dữ liệu thông qua cặp SendPort và ReceivePort. 
+Isolate Groups (Dart 3): Các Isolate trong cùng ứng dụng dùng chung mã nguồn và cấu trúc lớp, giúp chi phí cấp phát bộ nhớ ban đầu giảm xuống mức tối thiểu và thời gian khởi tạo nhanh hơn nhiều lần so với các phiên bản Dart cũ.
+1.2.3. Chi phí sao chép thông điệp (Serialization Overhead) và Kỹ thuật Zero-Copy
+Rủi ro Serialization: Mặc định việc gửi đối tượng (Map, List) qua Port sẽ thực hiện sao chép sâu (deep copy), gây tốn CPU và độ trễ trên chính Main Isolate. 
+Kỹ thuật Zero-Copy Transfer: 
+Isolate.exit(SendPort, message): Chuyển giao quyền sở hữu con trỏ bộ nhớ của message sang Isolate nhận mà không sao chép dữ liệu (O1).
+TransferableTypedData: Đóng gói mảng byte nhị phân (Uint8List) để chuyển giao tức thời giữa các Isolate, rất phù hợp khi xử lý file Excel, ảnh bitmap và dữ liệu nhị phân.
+Hệ quả thiết kế: Bộ lập lịch sử dụng TransferableTypedData và Isolate.exit cho các gói dữ liệu lớn để triệt tiêu thời gian sao chép trên Main Isolate.
+1.2.4. So sánh compute / Isolate.run với Mô hình Worker Pool dài hạn
+compute() và Isolate.run() sinh Isolate mới cho mỗi lời gọi và hủy ngay sau đó. Độ trễ khởi tạo (Spawn Latency) lên tới 25 ms - 80 ms/lần, tạo áp lực rác lớn lên bộ nhớ và không thể quản lý được mức độ song song khi có nhiều yêu cầu dồn dập. 
+Worker Pool thường trực (Long-running Worker Pool): Khởi tạo một số lượng Isolate worker nhất định từ đầu, giữ các worker luôn lắng nghe tác vụ. Loại bỏ hoàn toàn độ trễ khởi tạo và cho phép kiểm soát số lượng luồng thực thi tập trung.
+1.2.5. Tính bất khả ngắt của Isolate và Giải pháp Hợp tác đa nhiệm (Cooperative Chunking)
+Giới hạn cốt lõi: Dart VM không hỗ trợ cơ chế ngắt cưỡng bức (preempt/pause) một Isolate từ bên ngoài khi đang chạy mã Dart đồng bộ. Lệnh isolate.kill(priority: immediate) sẽ hủy toàn bộ Isolate và làm mất dữ liệu.
+Giải pháp Cooperative Chunking: Để cho phép tác vụ khẩn cấp (critical) chen ngang, tác vụ nền dài bắt buộc phải được chia nhỏ thành các đoạn (Chunk, khoảng 5 ms-10 ms). Giữa các chunk có điểm nhường (Yield Point), worker gửi trạng thái về cho Dispatcher trên Main Isolate. Nếu có tác vụ khẩn cấp hoặc UI đang giật, Dispatcher sẽ hoãn chunk tiếp theo để ưu tiên tác vụ khẩn cấp.
+1.2.6. Flutter Frame Pipeline, Ngân sách thời gian và Tín hiệu phản hồi
+Quy trình kết xuất 2 luồng: 
+UI Thread: Animation →Build (Widget Tree) →Layout →Paint (DisplayList) →Compositing.
+Raster Thread: Chuyển Layer Tree thành lệnh GPU (Skia / Impeller) và vẽ lên Framebuffer.
+Ngân sách thời gian (Frame Budget): 16.6 ms (60 Hz) hoặc 8.3 ms (120 Hz). Thời gian rảnh (Δtslack) là khoảng thời gian còn lại trong frame sau khi UI Thread hoàn thành vẽ. 
+Tín hiệu phản hồi FrameTiming: Thông qua SchedulerBinding.instance.addTimingsCallback, bộ lập lịch đọc được buildDuration, rasterDuration, totalSpan của từng frame theo thời gian thực để nhận biết trạng thái giật của UI. 
+Tham chiếu scheduleTask: Cơ chế ưu tiên nội tại của Flutter (Priority.idle, Priority.animation, Priority.touch) là cơ sở để thiết kế hàng đợi 3 mức ở tầng Worker Pool.
+1.3. Lập lịch ở Hệ điều hành và Nền tảng Di động
+1.3.1. Cơ chế lập lịch nhân Linux/Android & Kiến trúc CPU big.LITTLE
+HĐH Android trên nhân Linux sử dụng hai cơ chế lập lịch chủ đạo:
+Completely Fair Scheduler (CFS): Phân chia thời gian CPU công bằng theo thời gian thực thi ảo (vruntime). CFS không quan tâm đến ngữ nghĩa luồng, dẫn đến việc một luồng worker nền có thể nhận thời gian CPU tương đương luồng UI đang cuộn màn hình.
+Energy-Aware Scheduling (EAS): Phân bổ luồng dựa trên Mô hình Năng lượng (Energy Model) để tối ưu giữa hiệu năng và tiêu thụ pin.
+Kiến trúc big.LITTLE / DynamIQ: SoC di động kết hợp giữa P-cores (nhân hiệu năng cao, xung cao, tốn điện) và E-cores (nhân tiết kiệm điện, xung thấp). Khi tải thay đổi, HĐH có thể luân chuyển luồng worker giữa P-core và E-core, dẫn đến sự biến thiên lớn về thời gian thực thi giữa các lần chạy, đòi hỏi thực nghiệm phải đo đạc lặp lại nhiều lần (N≥10) để lấy trung vị và phân vị p95.
+1.3.2. Hiện tượng "Bất cân xứng nhận thức" (Cognitive Asymmetry)
+Góc nhìn của HĐH: HĐH chỉ nhìn thấy các luồng POSIX thô sơ có định danh tid. HĐH xem luồng vẽ UI và luồng xử lý Excel/đồng bộ ngầm là bình đẳng. 
+Góc nhìn của Ứng dụng: Chỉ có tầng ứng dụng mới biết người dùng đang đặt ngón tay vuốt màn hình (cần ưu tiên 16.6ms tuyệt đối), còn tác vụ đồng bộ nền có thể hoãn lại vài trăm mili-giây. 
+Kết luận khoa học: Vì HĐH thiếu ngữ cảnh nghiệp vụ, tầng ứng dụng bắt buộc phải chủ động lập lịch. Ứng dụng phải điều tiết số lượng và thời điểm đưa việc xuống worker trước khi các luồng này được nhân Linux đưa vào hàng đợi CPU.
+1.3.3. Cơ chế Bóp xung nhịp do nhiệt (Thermal Throttling) & Android Thermal API
+Khi SoC vượt ngưỡng nhiệt bảo vệ (>42∘C-45∘C), HĐH lập tức hạ xung nhịp CPU/GPU qua DVFS, khiến năng lực tính toán giảm 40-60%, kéo theo UI bị gián đoạn. 
+Android Thermal API (Android 10 - API 29+): Cung cấp OnThermalStatusChangedListener với các mức: NONE, LIGHT, MODERATE, SEVERE, CRITICAL. Đây là tín hiệu phần cứng trực tiếp để bộ lập lịch chuyển đổi chế độ suy giảm (Normal →Conserve →Critical), chủ động hạ số worker trước khi bị HĐH can thiệp bóp xung.
+1.3.4. Quản lý trạng thái tiến trình: Nền ngoài (OS) vs Nền trong (In-App)
+Lập lịch ngoài tiến trình (OS Background): Android sử dụng WorkManager, Doze Mode và App Standby khi ứng dụng đã tắt hoặc đưa vào nền. Cơ chế này do HĐH toàn quyền quyết định theo pin và mạng, có thể bị hoãn nhiều giờ. 
+Lập lịch trong tiến trình khi đang tương tác (In-App Foreground): Là phạm vi nghiên cứu của đề tài — điều phối đa luồng trong khi ứng dụng đang chạy ở foreground và người dùng đang trực tiếp thao tác. Ở trạng thái này, HĐH dành ưu tiên tiến trình cao nhất (oom_adj = 0), nhưng việc cân bằng giữa các luồng bên trong hoàn toàn là trách nhiệm của ứng dụng.
+1.3.5. Mô hình Tham chiếu Quality of Service (QoS) trên iOS
+Apple triển khai cơ chế Quality of Service (QoS) trong GCD với 4 mức: userInteractive, userInitiated, utility, background. Tuy nhiên, Dart Isolate trên Flutter lại thiếu vắng cơ chế gán nhãn QoS tự động này. Đây chính là hình mẫu chuẩn mực để đề tài kế thừa và xây dựng hệ thống 3 mức ưu tiên độc lập nền tảng trong Dart:Priority∈criticalvisiblebackground
+1.3.6. Android Choreographer, Nhịp Vsync và Cơ chế hình thành Jank
+Choreographer điều phối chu kỳ dựng khung hình theo nhịp ngắt Vsync phần cứng (16.6 ms). 
+Sử dụng cơ chế đệm kép/đệm ba (Double/Triple Buffering). 
+Cơ chế sinh Jank: Nếu do tranh chấp CPU từ các worker isolate mà luồng UI hoặc Raster trễ hẹn Vsync, Choreographer buộc phải hiển thị lặp lại khung hình cũ, tạo nên hiện tượng giật màn hình (Jank). Nếu kéo dài liên tục trên 700 ms, ứng dụng sẽ bị đóng băng.
+1.3.7. Khoảng trống Nghiên cứu & Đóng góp của Đề tài
+Các thư viện Worker Pool hiện có trên hệ sinh thái Flutter (như worker_manager, squadron) chỉ giải quyết bài toán chạy song song bằng hàng đợi FIFO đơn giản, hoàn toàn mù về trạng thái khung hình UI (FrameTiming) và trạng thái phần cứng (Nhiệt, Pin).
+KHOẢNG TRỐNG CÔNG NGHỆ:Chưa có giải pháp nào kết hợp đồng thời cả 3 nguồn tín hiệu vào một vòng lặp điều khiển phản hồi kín:
+Trải nghiệm giao diện thực tế (FrameTiming p95);
+Ngữ nghĩa nghiệp vụ tác vụ (Priority, Chunking);
+Trạng thái vật lý phần cứng (Thermal API, Battery Level).
+1.4. Lý thuyết Lập lịch và Điều khiển Phản hồi Tầng Ứng dụng
+1.4.1. Hàng đợi ưu tiên đa mức (Multi-level Priority Queue) và Kỹ thuật Aging
+Để giải quyết câu hỏi Q1 (Tác vụ nào chạy trước?), hệ thống áp dụng cấu trúc Hàng đợi ưu tiên đa mức phân tầng theo tác động trải nghiệm người dùng:
+Ba cấp độ ưu tiên ngữ nghĩa: 
+Mức 1: critical (Ưu tiên cao nhất): Tác vụ mà người dùng đang chủ động chờ kết quả trực tiếp trên giao diện (ví dụ: giải mã và mở một ảnh phóng to khi người dùng bấm vào, tính tiền hóa đơn hiện tại). Tác vụ này phải được cấp phát worker ngay lập tức với độ trễ phản hồi p95<100 ms.
+Mức 2: visible (Ưu tiên trung bình): Tác vụ phục vụ các phần tử đang hoặc sắp xuất hiện trong khung nhìn (viewport), ví dụ: giải mã ảnh thumbnail của 10 sản phẩm sắp cuộn tới trong danh mục POS.
+Mức 3: background (Ưu tiên thấp): Tác vụ chạy ngầm hoàn toàn không ảnh hưởng đến màn hình hiện tại (ví dụ: phân tích file Excel nhập hàng, đồng bộ hóa đơn lên server, nén log).
+Hiện tượng đói tác vụ (Starvation) và Kỹ thuật Aging:Nguy cơ: Nếu người dùng liên tục thao tác trên màn hình, các tác vụ critical và visible liên tục được đẩy vào hàng đợi, các tác vụ background có thể bị "bỏ đói" (starvation) vô hạn, không bao giờ được cấp phát worker.Giải thuật Aging: Bộ lập lịch tính toán độ ưu tiên hiệu dụng (Peffective) của tác vụ dựa trên độ ưu tiên gốc (Pbase) và thời gian tác vụ đã phải chờ trong hàng đợi:Peffectivet=Pbase+α⋅t-tsubmitted
+Trong đó: 
+Pbaselà trọng số cơ sở (critical=1000, visible=100, background=10);
+αlà hệ số lão hóa (Aging coefficient, ví dụ α=0.5 điểm/ms);
+t-tsubmittedlà thời gian chờ tính bằng mili-giây. Hệ quả: Khi một tác vụ background chờ quá lâu (ví dụ chờ 5000 ms), giá trị Peffectivecủa nó sẽ vượt qua ngưỡng của tác vụ visible mới đến, đảm bảo tác vụ nền luôn được thực thi trong một giới hạn thời gian xác định (Zero Starvation).
+1.4.2. Lập lịch cưỡng bức (Preemptive) vs Lập lịch hợp tác (Cooperative): Time Slicing & Yield Boundary
+Để giải quyết câu hỏi Q4 (Xử lý tác vụ khẩn cấp chen ngang) trong điều kiện Dart VM không hỗ trợ ngắt luồng ngoài:
+So sánh hai trường phái: 
+Lập lịch cưỡng bức (Preemptive Scheduling): HĐH hoặc Runtime có quyền ngắt một luồng đang chạy tại bất kỳ lệnh máy nào để trao quyền cho luồng khác. Dart Isolate không hỗ trợ cơ chế này.
+Lập lịch hợp tác (Cooperative Multitasking): Tác vụ đang chạy phải tự nguyện nhường quyền kiểm soát tại các điểm định trước (Yield Points).
+Kỹ thuật Băm thời gian (Time Slicing / Chunking):Mọi tác vụ nền dài (như duyệt 10,000 dòng Excel hoặc mã hóa 200 ảnh) bắt buộc phải được chia thành một chuỗi các đoạn tính toán độc lập gọi là Chunk.
+Bài toán tối ưu kích thước Chunk (tchunk):Kích thước chunk là tham số thiết kế nhạy cảm nhất của bộ lập lịch: 
+Nếu chunk quá nhỏ (tchunk<2 ms): Chi phí gửi nhận thông điệp qua Port (IPC overhead) và chi phí chuyển đổi ngữ cảnh sẽ chiếm ưu thế so với thời gian tính toán thực tế, làm giảm mạnh thông lượng tổng thể.
+Nếu chunk quá lớn (tchunk>20 ms): Khi một tác vụ critical xuất hiện, nó phải chờ chunk hiện tại chạy xong mới được vào worker. Độ trễ nhường lượt vượt quá ngân sách khung hình, gây ra rớt frame giao diện.
+Khoảng tối ưu lý thuyết:5 ms≤tchunk≤10 msKhoảng thời gian này đủ nhỏ để bảo đảm phản hồi tức thì trong chu kỳ 16.6ms, nhưng đủ lớn để triệt tiêu chi phí phụ tải thông điệp.
+1.4.3. Cơ sở toán học về giới hạn song song: Định luật Amdahl và Định luật Little
+Để giải quyết câu hỏi Q2 (Bao nhiêu tác vụ chạy cùng lúc?):
+Định luật Amdahl (Amdahl's Law):Định luật Amdahl xác định mức tăng tốc tối đa (Speedup S) của một chương trình khi tăng số lượng nhân xử lý N:SN=11-p+pNTrong đó:
+p là tỷ lệ khối lượng công việc có thể chạy song song (0≤p≤1);
+1-p là phần công việc bắt buộc phải chạy tuần tự (tuần tự hóa dữ liệu, I/O, chuyển giao Port trên Main Isolate). Ý nghĩa thiết kế: Khi p=0.8(80% song song, 20% tuần tự), dù tăng lên N=16worker thì mức tăng tốc cực đại cũng không thể vượt quá:Smax=11-0.8=5Việc cấp phát quá nhiều worker (N>4 trên điện thoại 8 nhân) không làm ứng dụng nhanh hơn, mà chỉ gây lãng phí năng lượng và nghẽn Main Isolate. Do đó, mức cận trên tối ưu cho worker pool được xác lập là:Nmax=max⁡1Ncores-2(Dành riêng ít nhất 1 nhân cho UI Thread và 1 nhân cho Raster Thread/HĐH).
+Định luật Little (Little's Law):Định luật cơ bản của lý thuyết xếp hàng áp dụng cho hệ thống lập lịch:L=λ⋅WTrong đó:
+Llà số lượng tác vụ trung bình đang tồn tại trong hệ thống (đang chờ trong hàng đợi + đang chạy trong worker pool);
+λlà tốc độ tác vụ mới được gửi đến (arrival rate, tác vụ/giây);
+Wlà thời gian lưu lại trung bình của một tác vụ trong hệ thống (waiting time + service time). Ý nghĩa thiết kế: Nếu tốc độ gửi tác vụ λvượt quá tốc độ xử lý của worker pool, số lượng tác vụ Ltrong RAM sẽ tăng tuyến tính vô hạn. Điều này dẫn trực tiếp đến nhu cầu thiết kế Cơ chế Áp lực ngược (Backpressure).
+1.4.4. Lý thuyết Điều khiển phản hồi thích ứng: Thuật toán AIMD theo Frame Time
+Để giải quyết câu hỏi Q3 (Tăng hay giảm worker khi tải thay đổi?), hệ thống sử dụng mô hình Điều khiển phản hồi vòng kín (Closed-loop Feedback Control) lấy cảm hứng từ thuật toán điều khiển tắc nghẽn TCP (AIMD - Additive Increase / Multiplicative Decrease):
+Nguyên lý AIMD: 
+Tăng từ từ (Additive Increase): Khi hệ thống vận hành mượt mà (p95 Frame Time<Tsafe=12 ms), bộ điều khiển tăng dần từng worker sau mỗi chu kỳ kiểm tra (ttick=200 ms):Nt+1=min⁡Nt+1NmaxMục đích: Thăm dò khả năng chịu tải của phần cứng một cách êm ái, tối đa hóa thông lượng xử lý.
+Giảm đột ngột (Multiplicative Decrease): Khi phát hiện dấu hiệu nghẽn frame (p95 Frame Time>Tdanger=14 ms), bộ điều khiển lập tức cắt giảm số worker theo hệ số nhân β=0.5:Nt+1=max⁡Nt⋅β1Mục đích: Giải phóng ngay lập tức các nhân CPU hiệu năng cao (P-cores) cho UI và Raster Thread hoàn tất khung hình, ngăn chặn nguy cơ rớt frame dây chuyền.
+Tại sao lại dùng AIMD thay vì điều khiển tuyến tính?Đặc tính của độ trễ khung hình là phi tuyến tính: khi CPU vượt ngưỡng bão hòa, chỉ một tranh chấp nhỏ cũng làm frame time nhảy vọt từ 12ms lên 40ms. Giảm worker theo cấp số nhân là cách duy nhất "cứu" kịp khung hình trước nhịp Vsync tiếp theo.
+1.4.5. Cơ chế Áp lực ngược (Backpressure) và Kiểm soát bộ nhớ
+Dựa trên Định luật Little, khi hàng đợi tích lũy số lượng tác vụ vượt ngưỡng an toàn (L≥Lmax, ví dụ 500 tác vụ hoặc kích thước payload pending >50 MB):
+Cơ chế Backpressure: Dispatcher kích hoạt trạng thái chặn (blocking/throttling) tại nguồn phát. Tạm thời ngừng đọc thêm dữ liệu từ Stream hoặc tệp tin (ví dụ: tạm dừng đọc các chunk tiếp theo của file Excel).
+Mục đích: Ngăn chặn hiện tượng tràn bộ nhớ (Out of Memory - OOM crash) và giảm áp lực cấp phát đối tượng lên Garbage Collector của Dart VM.
+1.4.6. Máy trạng thái suy giảm (Degradation State Machine) và Trễ Hysteresis
+Để giải quyết câu hỏi Q6 (Chiến lược khi máy nóng hoặc pin yếu?), hệ thống vận hành một Máy trạng thái hữu hạn (FSM) gồm 3 chế độ hoạt động:
+Ba chế độ hoạt động: 
+Normal: Điều kiện nhiệt độ an toàn, pin dồi dào, UI ổn định. Cho phép chạy toàn bộ các mức tác vụ (critical, visible, background) với số worker tối đa Nmax.
+Conserve: Khi nhiệt độ tăng (Android Thermal MODERATE hoặc SoC ≥40∘C) hoặc pin thấp (<20%). Giảm số worker tối đa xuống còn một nửa; giãn cách tần suất cấp phát tác vụ background; ưu tiên bảo vệ độ mượt.
+Critical: Khi nhiệt độ đạt mức nguy hiểm (Android Thermal SEVERE/CRITICAL hoặc SoC ≥45∘C) hoặc pin cực thấp (<10%). Giới hạn hệ thống về đúng N=1worker; tạm dừng toàn bộ tác vụ background và visible, chỉ cấp phát duy nhất tác vụ critical.
+Cơ chế chống chập chờn (Hysteresis & Dwell Time):Vấn đề: Nếu chỉ dùng một ngưỡng duy nhất (ví dụ 40∘C), khi nhiệt độ dao động quanh 39.9∘C↔40.1∘C, hệ thống sẽ liên tục đổi trạng thái (chattering/flapping), gây mất ổn định luồng.Giải pháp Hysteresis: 
+Ngưỡng kích hoạt vào Conserve: ≥40∘C.
+Ngưỡng quay về Normal: ≤36∘C(chênh lệch ΔT=4∘C).
+Thời gian giữ tối thiểu (Dwell Time): Sau khi chuyển chế độ, hệ thống bắt buộc phải duy trì chế độ mới ít nhất 10 giaˆytrước khi được phép xem xét chuyển về chế độ thấp hơn.

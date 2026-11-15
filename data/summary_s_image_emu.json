@@ -1,0 +1,1109 @@
+{
+  "runs": [
+    {
+      "file": "meta_none_s_image_emu_L16W4_1.json",
+      "policy": "none",
+      "run": 1,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 557,
+      "dropPct": 99.64,
+      "dropTotalPct": 100.0,
+      "missedPct": 69.06,
+      "p95Ms": 140.22,
+      "buildP95Ms": 10.79,
+      "rasterP95Ms": 71.04,
+      "gapP95Ms": 83.33,
+      "total": 2130,
+      "done": 0,
+      "dropped": 0,
+      "makespanMs": 0,
+      "critP95Ms": 0,
+      "bgMaxWaitMs": 0
+    },
+    {
+      "file": "meta_none_s_image_emu_L16W4_2.json",
+      "policy": "none",
+      "run": 2,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 542,
+      "dropPct": 99.63,
+      "dropTotalPct": 100.0,
+      "missedPct": 69.89,
+      "p95Ms": 145.27,
+      "buildP95Ms": 12.07,
+      "rasterP95Ms": 75.0,
+      "gapP95Ms": 83.33,
+      "total": 2130,
+      "done": 0,
+      "dropped": 0,
+      "makespanMs": 0,
+      "critP95Ms": 0,
+      "bgMaxWaitMs": 0
+    },
+    {
+      "file": "meta_p0_s_image_emu_L16W4_1.json",
+      "policy": "p0",
+      "run": 1,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 116,
+      "dropPct": 62.93,
+      "dropTotalPct": 100.0,
+      "missedPct": 93.56,
+      "p95Ms": 747.08,
+      "buildP95Ms": 8.07,
+      "rasterP95Ms": 44.0,
+      "gapP95Ms": 900.0,
+      "total": 2130,
+      "done": 607,
+      "dropped": 0,
+      "makespanMs": 62327,
+      "critP95Ms": 37190,
+      "bgMaxWaitMs": 45031
+    },
+    {
+      "file": "meta_p0_s_image_emu_L16W4_2.json",
+      "policy": "p0",
+      "run": 2,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 123,
+      "dropPct": 41.46,
+      "dropTotalPct": 100.0,
+      "missedPct": 93.17,
+      "p95Ms": 747.75,
+      "buildP95Ms": 6.27,
+      "rasterP95Ms": 40.26,
+      "gapP95Ms": 800.0,
+      "total": 2130,
+      "done": 632,
+      "dropped": 0,
+      "makespanMs": 62029,
+      "critP95Ms": 34243,
+      "bgMaxWaitMs": 44367
+    },
+    {
+      "file": "meta_p1_s_image_emu_L16W4_1.json",
+      "policy": "p1",
+      "run": 1,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 385,
+      "dropPct": 100.0,
+      "dropTotalPct": 100.0,
+      "missedPct": 78.61,
+      "p95Ms": 258.1,
+      "buildP95Ms": 23.74,
+      "rasterP95Ms": 122.41,
+      "gapP95Ms": 150.0,
+      "total": 2130,
+      "done": 765,
+      "dropped": 0,
+      "makespanMs": 61521,
+      "critP95Ms": 25659,
+      "bgMaxWaitMs": 42211
+    },
+    {
+      "file": "meta_p1_s_image_emu_L16W4_2.json",
+      "policy": "p1",
+      "run": 2,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 385,
+      "dropPct": 99.74,
+      "dropTotalPct": 100.0,
+      "missedPct": 78.61,
+      "p95Ms": 238.34,
+      "buildP95Ms": 23.37,
+      "rasterP95Ms": 124.55,
+      "gapP95Ms": 133.33,
+      "total": 2130,
+      "done": 724,
+      "dropped": 0,
+      "makespanMs": 61516,
+      "critP95Ms": 27518,
+      "bgMaxWaitMs": 43423
+    },
+    {
+      "file": "meta_p2_s_image_emu_L16W4_1.json",
+      "policy": "p2",
+      "run": 1,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 386,
+      "dropPct": 100.0,
+      "dropTotalPct": 100.0,
+      "missedPct": 78.56,
+      "p95Ms": 235.59,
+      "buildP95Ms": 25.91,
+      "rasterP95Ms": 127.14,
+      "gapP95Ms": 150.0,
+      "total": 2130,
+      "done": 919,
+      "dropped": 0,
+      "makespanMs": 61670,
+      "critP95Ms": 26176,
+      "bgMaxWaitMs": 43449
+    },
+    {
+      "file": "meta_p2_s_image_emu_L16W4_2.json",
+      "policy": "p2",
+      "run": 2,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 329,
+      "dropPct": 100.0,
+      "dropTotalPct": 100.0,
+      "missedPct": 81.72,
+      "p95Ms": 274.22,
+      "buildP95Ms": 27.28,
+      "rasterP95Ms": 143.56,
+      "gapP95Ms": 166.67,
+      "total": 2130,
+      "done": 831,
+      "dropped": 0,
+      "makespanMs": 61652,
+      "critP95Ms": 32592,
+      "bgMaxWaitMs": 44483
+    },
+    {
+      "file": "meta_p3_s_image_emu_L16W4_1.json",
+      "policy": "p3",
+      "run": 1,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 289,
+      "dropPct": 100.0,
+      "dropTotalPct": 100.0,
+      "missedPct": 83.94,
+      "p95Ms": 380.99,
+      "buildP95Ms": 34.63,
+      "rasterP95Ms": 205.09,
+      "gapP95Ms": 216.67,
+      "total": 2130,
+      "done": 628,
+      "dropped": 0,
+      "makespanMs": 61588,
+      "critP95Ms": 680,
+      "bgMaxWaitMs": 47001
+    },
+    {
+      "file": "meta_p3_s_image_emu_L16W4_2.json",
+      "policy": "p3",
+      "run": 2,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 440,
+      "dropPct": 99.77,
+      "dropTotalPct": 100.0,
+      "missedPct": 75.56,
+      "p95Ms": 200.23,
+      "buildP95Ms": 17.3,
+      "rasterP95Ms": 104.7,
+      "gapP95Ms": 116.67,
+      "total": 2130,
+      "done": 730,
+      "dropped": 0,
+      "makespanMs": 61414,
+      "critP95Ms": 332,
+      "bgMaxWaitMs": 45597
+    },
+    {
+      "file": "meta_p4_s_image_emu_L16W4_1.json",
+      "policy": "p4",
+      "run": 1,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 499,
+      "dropPct": 99.4,
+      "dropTotalPct": 100.0,
+      "missedPct": 72.28,
+      "p95Ms": 161.5,
+      "buildP95Ms": 15.53,
+      "rasterP95Ms": 85.49,
+      "gapP95Ms": 100.0,
+      "total": 2130,
+      "done": 653,
+      "dropped": 504,
+      "makespanMs": 61549,
+      "critP95Ms": 302,
+      "bgMaxWaitMs": 33153
+    },
+    {
+      "file": "meta_p4_s_image_emu_L16W4_2.json",
+      "policy": "p4",
+      "run": 2,
+      "tag": "L16W4",
+      "load": 16.0,
+      "workers": 4,
+      "chunkMs": 80,
+      "frames": 522,
+      "dropPct": 99.81,
+      "dropTotalPct": 100.0,
+      "missedPct": 71.0,
+      "p95Ms": 147.58,
+      "buildP95Ms": 13.06,
+      "rasterP95Ms": 75.33,
+      "gapP95Ms": 83.33,
+      "total": 2130,
+      "done": 644,
+      "dropped": 503,
+      "makespanMs": 61720,
+      "critP95Ms": 270,
+      "bgMaxWaitMs": 35091
+    }
+  ],
+  "summary": [
+    {
+      "policy": "none",
+      "n": 2,
+      "metrics": {
+        "frames": {
+          "median": 549.5,
+          "min": 542.0,
+          "max": 557.0,
+          "values": [
+            557.0,
+            542.0
+          ]
+        },
+        "dropPct": {
+          "median": 99.63499999999999,
+          "min": 99.63,
+          "max": 99.64,
+          "values": [
+            99.64,
+            99.63
+          ]
+        },
+        "dropTotalPct": {
+          "median": 100.0,
+          "min": 100.0,
+          "max": 100.0,
+          "values": [
+            100.0,
+            100.0
+          ]
+        },
+        "missedPct": {
+          "median": 69.475,
+          "min": 69.06,
+          "max": 69.89,
+          "values": [
+            69.06,
+            69.89
+          ]
+        },
+        "p95Ms": {
+          "median": 142.745,
+          "min": 140.22,
+          "max": 145.27,
+          "values": [
+            140.22,
+            145.27
+          ]
+        },
+        "buildP95Ms": {
+          "median": 11.43,
+          "min": 10.79,
+          "max": 12.07,
+          "values": [
+            10.79,
+            12.07
+          ]
+        },
+        "rasterP95Ms": {
+          "median": 73.02000000000001,
+          "min": 71.04,
+          "max": 75.0,
+          "values": [
+            71.04,
+            75.0
+          ]
+        },
+        "gapP95Ms": {
+          "median": 83.33,
+          "min": 83.33,
+          "max": 83.33,
+          "values": [
+            83.33,
+            83.33
+          ]
+        },
+        "total": {
+          "median": 2130.0,
+          "min": 2130.0,
+          "max": 2130.0,
+          "values": [
+            2130.0,
+            2130.0
+          ]
+        },
+        "done": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "dropped": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "makespanMs": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "critP95Ms": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "bgMaxWaitMs": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "policy": "p0",
+      "n": 2,
+      "metrics": {
+        "frames": {
+          "median": 119.5,
+          "min": 116.0,
+          "max": 123.0,
+          "values": [
+            116.0,
+            123.0
+          ]
+        },
+        "dropPct": {
+          "median": 52.195,
+          "min": 41.46,
+          "max": 62.93,
+          "values": [
+            62.93,
+            41.46
+          ]
+        },
+        "dropTotalPct": {
+          "median": 100.0,
+          "min": 100.0,
+          "max": 100.0,
+          "values": [
+            100.0,
+            100.0
+          ]
+        },
+        "missedPct": {
+          "median": 93.36500000000001,
+          "min": 93.17,
+          "max": 93.56,
+          "values": [
+            93.56,
+            93.17
+          ]
+        },
+        "p95Ms": {
+          "median": 747.415,
+          "min": 747.08,
+          "max": 747.75,
+          "values": [
+            747.08,
+            747.75
+          ]
+        },
+        "buildP95Ms": {
+          "median": 7.17,
+          "min": 6.27,
+          "max": 8.07,
+          "values": [
+            8.07,
+            6.27
+          ]
+        },
+        "rasterP95Ms": {
+          "median": 42.129999999999995,
+          "min": 40.26,
+          "max": 44.0,
+          "values": [
+            44.0,
+            40.26
+          ]
+        },
+        "gapP95Ms": {
+          "median": 850.0,
+          "min": 800.0,
+          "max": 900.0,
+          "values": [
+            900.0,
+            800.0
+          ]
+        },
+        "total": {
+          "median": 2130.0,
+          "min": 2130.0,
+          "max": 2130.0,
+          "values": [
+            2130.0,
+            2130.0
+          ]
+        },
+        "done": {
+          "median": 619.5,
+          "min": 607.0,
+          "max": 632.0,
+          "values": [
+            607.0,
+            632.0
+          ]
+        },
+        "dropped": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "makespanMs": {
+          "median": 62178.0,
+          "min": 62029.0,
+          "max": 62327.0,
+          "values": [
+            62327.0,
+            62029.0
+          ]
+        },
+        "critP95Ms": {
+          "median": 35716.5,
+          "min": 34243.0,
+          "max": 37190.0,
+          "values": [
+            37190.0,
+            34243.0
+          ]
+        },
+        "bgMaxWaitMs": {
+          "median": 44699.0,
+          "min": 44367.0,
+          "max": 45031.0,
+          "values": [
+            45031.0,
+            44367.0
+          ]
+        }
+      }
+    },
+    {
+      "policy": "p1",
+      "n": 2,
+      "metrics": {
+        "frames": {
+          "median": 385.0,
+          "min": 385.0,
+          "max": 385.0,
+          "values": [
+            385.0,
+            385.0
+          ]
+        },
+        "dropPct": {
+          "median": 99.87,
+          "min": 99.74,
+          "max": 100.0,
+          "values": [
+            100.0,
+            99.74
+          ]
+        },
+        "dropTotalPct": {
+          "median": 100.0,
+          "min": 100.0,
+          "max": 100.0,
+          "values": [
+            100.0,
+            100.0
+          ]
+        },
+        "missedPct": {
+          "median": 78.61,
+          "min": 78.61,
+          "max": 78.61,
+          "values": [
+            78.61,
+            78.61
+          ]
+        },
+        "p95Ms": {
+          "median": 248.22000000000003,
+          "min": 238.34,
+          "max": 258.1,
+          "values": [
+            258.1,
+            238.34
+          ]
+        },
+        "buildP95Ms": {
+          "median": 23.555,
+          "min": 23.37,
+          "max": 23.74,
+          "values": [
+            23.74,
+            23.37
+          ]
+        },
+        "rasterP95Ms": {
+          "median": 123.47999999999999,
+          "min": 122.41,
+          "max": 124.55,
+          "values": [
+            122.41,
+            124.55
+          ]
+        },
+        "gapP95Ms": {
+          "median": 141.66500000000002,
+          "min": 133.33,
+          "max": 150.0,
+          "values": [
+            150.0,
+            133.33
+          ]
+        },
+        "total": {
+          "median": 2130.0,
+          "min": 2130.0,
+          "max": 2130.0,
+          "values": [
+            2130.0,
+            2130.0
+          ]
+        },
+        "done": {
+          "median": 744.5,
+          "min": 724.0,
+          "max": 765.0,
+          "values": [
+            765.0,
+            724.0
+          ]
+        },
+        "dropped": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "makespanMs": {
+          "median": 61518.5,
+          "min": 61516.0,
+          "max": 61521.0,
+          "values": [
+            61521.0,
+            61516.0
+          ]
+        },
+        "critP95Ms": {
+          "median": 26588.5,
+          "min": 25659.0,
+          "max": 27518.0,
+          "values": [
+            25659.0,
+            27518.0
+          ]
+        },
+        "bgMaxWaitMs": {
+          "median": 42817.0,
+          "min": 42211.0,
+          "max": 43423.0,
+          "values": [
+            42211.0,
+            43423.0
+          ]
+        }
+      }
+    },
+    {
+      "policy": "p2",
+      "n": 2,
+      "metrics": {
+        "frames": {
+          "median": 357.5,
+          "min": 329.0,
+          "max": 386.0,
+          "values": [
+            386.0,
+            329.0
+          ]
+        },
+        "dropPct": {
+          "median": 100.0,
+          "min": 100.0,
+          "max": 100.0,
+          "values": [
+            100.0,
+            100.0
+          ]
+        },
+        "dropTotalPct": {
+          "median": 100.0,
+          "min": 100.0,
+          "max": 100.0,
+          "values": [
+            100.0,
+            100.0
+          ]
+        },
+        "missedPct": {
+          "median": 80.14,
+          "min": 78.56,
+          "max": 81.72,
+          "values": [
+            78.56,
+            81.72
+          ]
+        },
+        "p95Ms": {
+          "median": 254.90500000000003,
+          "min": 235.59,
+          "max": 274.22,
+          "values": [
+            235.59,
+            274.22
+          ]
+        },
+        "buildP95Ms": {
+          "median": 26.595,
+          "min": 25.91,
+          "max": 27.28,
+          "values": [
+            25.91,
+            27.28
+          ]
+        },
+        "rasterP95Ms": {
+          "median": 135.35,
+          "min": 127.14,
+          "max": 143.56,
+          "values": [
+            127.14,
+            143.56
+          ]
+        },
+        "gapP95Ms": {
+          "median": 158.33499999999998,
+          "min": 150.0,
+          "max": 166.67,
+          "values": [
+            150.0,
+            166.67
+          ]
+        },
+        "total": {
+          "median": 2130.0,
+          "min": 2130.0,
+          "max": 2130.0,
+          "values": [
+            2130.0,
+            2130.0
+          ]
+        },
+        "done": {
+          "median": 875.0,
+          "min": 831.0,
+          "max": 919.0,
+          "values": [
+            919.0,
+            831.0
+          ]
+        },
+        "dropped": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "makespanMs": {
+          "median": 61661.0,
+          "min": 61652.0,
+          "max": 61670.0,
+          "values": [
+            61670.0,
+            61652.0
+          ]
+        },
+        "critP95Ms": {
+          "median": 29384.0,
+          "min": 26176.0,
+          "max": 32592.0,
+          "values": [
+            26176.0,
+            32592.0
+          ]
+        },
+        "bgMaxWaitMs": {
+          "median": 43966.0,
+          "min": 43449.0,
+          "max": 44483.0,
+          "values": [
+            43449.0,
+            44483.0
+          ]
+        }
+      }
+    },
+    {
+      "policy": "p3",
+      "n": 2,
+      "metrics": {
+        "frames": {
+          "median": 364.5,
+          "min": 289.0,
+          "max": 440.0,
+          "values": [
+            289.0,
+            440.0
+          ]
+        },
+        "dropPct": {
+          "median": 99.88499999999999,
+          "min": 99.77,
+          "max": 100.0,
+          "values": [
+            100.0,
+            99.77
+          ]
+        },
+        "dropTotalPct": {
+          "median": 100.0,
+          "min": 100.0,
+          "max": 100.0,
+          "values": [
+            100.0,
+            100.0
+          ]
+        },
+        "missedPct": {
+          "median": 79.75,
+          "min": 75.56,
+          "max": 83.94,
+          "values": [
+            83.94,
+            75.56
+          ]
+        },
+        "p95Ms": {
+          "median": 290.61,
+          "min": 200.23,
+          "max": 380.99,
+          "values": [
+            380.99,
+            200.23
+          ]
+        },
+        "buildP95Ms": {
+          "median": 25.965000000000003,
+          "min": 17.3,
+          "max": 34.63,
+          "values": [
+            34.63,
+            17.3
+          ]
+        },
+        "rasterP95Ms": {
+          "median": 154.895,
+          "min": 104.7,
+          "max": 205.09,
+          "values": [
+            205.09,
+            104.7
+          ]
+        },
+        "gapP95Ms": {
+          "median": 166.67,
+          "min": 116.67,
+          "max": 216.67,
+          "values": [
+            216.67,
+            116.67
+          ]
+        },
+        "total": {
+          "median": 2130.0,
+          "min": 2130.0,
+          "max": 2130.0,
+          "values": [
+            2130.0,
+            2130.0
+          ]
+        },
+        "done": {
+          "median": 679.0,
+          "min": 628.0,
+          "max": 730.0,
+          "values": [
+            628.0,
+            730.0
+          ]
+        },
+        "dropped": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "makespanMs": {
+          "median": 61501.0,
+          "min": 61414.0,
+          "max": 61588.0,
+          "values": [
+            61588.0,
+            61414.0
+          ]
+        },
+        "critP95Ms": {
+          "median": 506.0,
+          "min": 332.0,
+          "max": 680.0,
+          "values": [
+            680.0,
+            332.0
+          ]
+        },
+        "bgMaxWaitMs": {
+          "median": 46299.0,
+          "min": 45597.0,
+          "max": 47001.0,
+          "values": [
+            47001.0,
+            45597.0
+          ]
+        }
+      }
+    },
+    {
+      "policy": "p4",
+      "n": 2,
+      "metrics": {
+        "frames": {
+          "median": 510.5,
+          "min": 499.0,
+          "max": 522.0,
+          "values": [
+            499.0,
+            522.0
+          ]
+        },
+        "dropPct": {
+          "median": 99.605,
+          "min": 99.4,
+          "max": 99.81,
+          "values": [
+            99.4,
+            99.81
+          ]
+        },
+        "dropTotalPct": {
+          "median": 100.0,
+          "min": 100.0,
+          "max": 100.0,
+          "values": [
+            100.0,
+            100.0
+          ]
+        },
+        "missedPct": {
+          "median": 71.64,
+          "min": 71.0,
+          "max": 72.28,
+          "values": [
+            72.28,
+            71.0
+          ]
+        },
+        "p95Ms": {
+          "median": 154.54000000000002,
+          "min": 147.58,
+          "max": 161.5,
+          "values": [
+            161.5,
+            147.58
+          ]
+        },
+        "buildP95Ms": {
+          "median": 14.295,
+          "min": 13.06,
+          "max": 15.53,
+          "values": [
+            15.53,
+            13.06
+          ]
+        },
+        "rasterP95Ms": {
+          "median": 80.41,
+          "min": 75.33,
+          "max": 85.49,
+          "values": [
+            85.49,
+            75.33
+          ]
+        },
+        "gapP95Ms": {
+          "median": 91.66499999999999,
+          "min": 83.33,
+          "max": 100.0,
+          "values": [
+            100.0,
+            83.33
+          ]
+        },
+        "total": {
+          "median": 2130.0,
+          "min": 2130.0,
+          "max": 2130.0,
+          "values": [
+            2130.0,
+            2130.0
+          ]
+        },
+        "done": {
+          "median": 648.5,
+          "min": 644.0,
+          "max": 653.0,
+          "values": [
+            653.0,
+            644.0
+          ]
+        },
+        "dropped": {
+          "median": 503.5,
+          "min": 503.0,
+          "max": 504.0,
+          "values": [
+            504.0,
+            503.0
+          ]
+        },
+        "makespanMs": {
+          "median": 61634.5,
+          "min": 61549.0,
+          "max": 61720.0,
+          "values": [
+            61549.0,
+            61720.0
+          ]
+        },
+        "critP95Ms": {
+          "median": 286.0,
+          "min": 270.0,
+          "max": 302.0,
+          "values": [
+            302.0,
+            270.0
+          ]
+        },
+        "bgMaxWaitMs": {
+          "median": 34122.0,
+          "min": 33153.0,
+          "max": 35091.0,
+          "values": [
+            33153.0,
+            35091.0
+          ]
+        }
+      }
+    }
+  ],
+  "mann_whitney": {
+    "available": true,
+    "ref": "p1",
+    "target": "p4",
+    "tests": {
+      "dropPct": {
+        "u": 3.0,
+        "p": 0.6666666666666666
+      },
+      "missedPct": {
+        "u": 4.0,
+        "p": 0.22067136191984682
+      },
+      "rasterP95Ms": {
+        "u": 4.0,
+        "p": 0.3333333333333333
+      },
+      "p95Ms": {
+        "u": 4.0,
+        "p": 0.3333333333333333
+      },
+      "makespanMs": {
+        "u": 0.0,
+        "p": 0.3333333333333333
+      },
+      "critP95Ms": {
+        "u": 4.0,
+        "p": 0.3333333333333333
+      },
+      "bgMaxWaitMs": {
+        "u": 4.0,
+        "p": 0.3333333333333333
+      }
+    }
+  }
+}

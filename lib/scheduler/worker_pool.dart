@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 
+import '../workload/image_workload.dart';
 import '../workload/synthetic.dart';
 import 'task.dart';
 
@@ -8,9 +9,18 @@ void _workerMain(SendPort toMain) {
   final rx = ReceivePort();
   toMain.send(rx.sendPort);
   rx.listen((m) {
-    final msg = m as List<int>; // [taskId, iters]
-    burn(msg[1]);
-    toMain.send(msg[0]);
+    final msg = m as List<Object?>; // [taskId, iters, imagePath, doneIters, totalIters]
+    final taskId = msg[0] as int;
+    final iters = msg[1] as int;
+    final imagePath = msg[2] as String?;
+    if (imagePath != null) {
+      final doneIters = msg[3] as int;
+      final totalIters = msg[4] as int;
+      processImageChunk(imagePath, iters, doneIters, totalIters);
+    } else {
+      burn(iters);
+    }
+    toMain.send(taskId);
   });
 }
 
@@ -42,7 +52,7 @@ class PoolWorker {
 
   void run(Task t, int iters) {
     busy = true;
-    _tx.send([t.id, iters]);
+    _tx.send([t.id, iters, t.imagePath, t.doneIters, t.iters]);
   }
 
   void kill() {

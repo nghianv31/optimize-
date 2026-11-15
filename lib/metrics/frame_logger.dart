@@ -1,27 +1,36 @@
+import 'dart:developer';
 import 'dart:ui';
 
 import 'package:flutter/scheduler.dart';
 
-/// Ghi FrameTiming vào RAM. Chỉ nhận frame có vsyncStart trong [startUs, endUs].
-/// (Callback của engine được gom lô nên có thể đến muộn; lọc theo timestamp.)
+/// Ghi FrameTiming vào RAM thời gian thực.
 class FrameLogger {
   int startUs = 0;
   int endUs = 1 << 62;
   final List<List<int>> rows = []; // vsync, build, raster, total (µs, tuyệt đối)
 
-  void attach() => SchedulerBinding.instance.addTimingsCallback(_onTimings);
+  void attach() {
+    if (startUs == 0) {
+      startUs = Timeline.now; // Bắt đầu nhận frame ngay từ lúc attach
+    }
+    SchedulerBinding.instance.addTimingsCallback(_onTimings);
+  }
 
   void _onTimings(List<FrameTiming> ts) {
-    if (startUs == 0) return;
     for (final t in ts) {
       final v = t.timestampInMicroseconds(FramePhase.vsyncStart);
-      if (v < startUs || v > endUs) continue;
+      if (startUs > 0 && v < startUs) continue;
+      if (v > endUs) continue;
       rows.add([
         v,
         t.buildDuration.inMicroseconds,
         t.rasterDuration.inMicroseconds,
         t.totalSpan.inMicroseconds,
       ]);
+      // Giữ tối đa 500 frame gần nhất trong RAM khi chạy tương tác
+      if (rows.length > 500) {
+        rows.removeRange(0, rows.length - 300);
+      }
     }
   }
 

@@ -58,6 +58,7 @@ def main():
     ap.add_argument("--shuffle-seed", type=int, default=1)
     ap.add_argument("--cool-s", type=int, default=60, help="nghỉ tối thiểu giữa các lần")
     ap.add_argument("--max-temp", type=float, default=0, help="chờ pin <= nhiệt này (°C); 0 = bỏ qua")
+    ap.add_argument("--yield-ms", type=int, default=None, help="ngưỡng nhường frame (ms), vd 10 cho 120Hz")
     ap.add_argument("--extra", default="{}", help='JSON gộp vào config, vd {"yieldMs":16}')
     ap.add_argument("--tag-suffix", default="", help="thêm vào tag, vd Y16")
     ap.add_argument("--build", action="store_true", help="build + cài APK profile trước khi chạy")
@@ -79,6 +80,11 @@ def main():
         subprocess.run(["flutter", "build", "apk", "--profile"], cwd=ROOT, check=True)
         adb("install", "-r", os.path.join(ROOT, "build/app/outputs/flutter-apk/app-profile.apk"))
     adb.shell("mkdir", "-p", REMOTE)
+    if a.scenario == "s_image":
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from push_images import sync_images
+        log("Đồng bộ 80 ảnh thực tế cho kịch bản s_image ...")
+        sync_images(serial=a.serial, count=80)
 
     manifest = os.path.join(os.path.dirname(a.out), "manifest.csv")
     new = not os.path.exists(manifest)
@@ -92,7 +98,13 @@ def main():
             tag = f"L{load:g}W{wk}" + (f"C{ck}" if len(a.chunks.split(",")) > 1 or ck != 80 else "")
             cfg = dict(policy=pol, scenario=a.scenario, device=a.device, run=rep, seed=a.seed, workers=wk,
                        chunkMs=ck, load=load, durationS=a.duration, tag=tag + a.tag_suffix)
-            cfg.update(json.loads(a.extra))
+            if a.yield_ms is not None:
+                cfg["yieldMs"] = a.yield_ms
+            if a.extra and a.extra != "{}":
+                try:
+                    cfg.update(json.loads(a.extra))
+                except Exception:
+                    pass
             tag = cfg["tag"]
             name = f"{pol}_{a.scenario}_{a.device}_{tag}_{rep}"
             t0 = adb.temp_c()

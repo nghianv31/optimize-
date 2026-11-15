@@ -1,0 +1,190 @@
+{
+  "s1": {
+    "none": {
+      "frames": 404.0,
+      "dropPct": 100.0,
+      "missedPct": 77.555,
+      "p95Ms": 218.53,
+      "rasterP95Ms": 111.66,
+      "makespanMs": 0.0,
+      "critP95Ms": 0.0,
+      "bgMaxWaitMs": 0.0,
+      "done": 0.0,
+      "total": 2453.0,
+      "dropped": 0.0
+    },
+    "p0": {
+      "frames": 322.5,
+      "dropPct": 98.515,
+      "missedPct": 82.08500000000001,
+      "p95Ms": 248.26,
+      "rasterP95Ms": 101.08500000000001,
+      "makespanMs": 61196.0,
+      "critP95Ms": 26594.5,
+      "bgMaxWaitMs": 32192.5,
+      "done": 2371.0,
+      "total": 2453.0,
+      "dropped": 0.0
+    },
+    "p1": {
+      "frames": 322.5,
+      "dropPct": 99.86,
+      "missedPct": 82.08500000000001,
+      "p95Ms": 300.63,
+      "rasterP95Ms": 145.31,
+      "makespanMs": 33340.5,
+      "critP95Ms": 3566.5,
+      "bgMaxWaitMs": 3890.0,
+      "done": 2453.0,
+      "total": 2453.0,
+      "dropped": 0.0
+    },
+    "p2": {
+      "frames": 407.5,
+      "dropPct": 98.99000000000001,
+      "missedPct": 77.36500000000001,
+      "p95Ms": 215.28,
+      "rasterP95Ms": 106.775,
+      "makespanMs": 30504.0,
+      "critP95Ms": 124.0,
+      "bgMaxWaitMs": 1482.5,
+      "done": 2453.0,
+      "total": 2453.0,
+      "dropped": 0.0
+    },
+    "p3": {
+      "frames": 466.5,
+      "dropPct": 99.68,
+      "missedPct": 74.08500000000001,
+      "p95Ms": 181.735,
+      "rasterP95Ms": 94.485,
+      "makespanMs": 49053.0,
+      "critP95Ms": 82.0,
+      "bgMaxWaitMs": 18951.0,
+      "done": 2453.0,
+      "total": 2453.0,
+      "dropped": 0.0
+    }
+  },
+  "s2": {
+    "p1": {
+      "frames": 393.5,
+      "dropPct": 99.78,
+      "missedPct": 78.14,
+      "p95Ms": 239.595,
+      "rasterP95Ms": 126.335,
+      "makespanMs": 35992.0,
+      "critP95Ms": 5039.5,
+      "bgMaxWaitMs": 5966.0,
+      "done": 2130.0,
+      "total": 2130.0,
+      "dropped": 0.0
+    },
+    "p3": {
+      "frames": 383.5,
+      "dropPct": 100.0,
+      "missedPct": 78.695,
+      "p95Ms": 226.54000000000002,
+      "rasterP95Ms": 121.595,
+      "makespanMs": 53841.5,
+      "critP95Ms": 60.5,
+      "bgMaxWaitMs": 23623.5,
+      "done": 2130.0,
+      "total": 2130.0,
+      "dropped": 0.0
+    },
+    "p4": {
+      "frames": 444.5,
+      "dropPct": 100.0,
+      "missedPct": 75.305,
+      "p95Ms": 183.755,
+      "rasterP95Ms": 104.945,
+      "makespanMs": 32138.0,
+      "critP95Ms": 63.5,
+      "bgMaxWaitMs": 8613.0,
+      "done": 1655.0,
+      "total": 2130.0,
+      "dropped": 475.0
+    }
+  },
+  "s_image": {
+    "none": {
+      "frames": 549.5,
+      "dropPct": 99.63499999999999,
+      "missedPct": 69.475,
+      "p95Ms": 142.745,
+      "rasterP95Ms": 73.02000000000001,
+      "makespanMs": 0.0,
+      "critP95Ms": 0.0,
+      "bgMaxWaitMs": 0.0,
+      "done": 0.0,
+      "total": 2130.0,
+      "dropped": 0.0
+    },
+    "p0": {
+      "frames": 119.5,
+      "dropPct": 52.195,
+      "missedPct": 93.36500000000001,
+      "p95Ms": 747.415,
+      "rasterP95Ms": 42.129999999999995,
+      "makespanMs": 62178.0,
+      "critP95Ms": 35716.5,
+      "bgMaxWaitMs": 44699.0,
+      "done": 619.5,
+      "total": 2130.0,
+      "dropped": 0.0
+    },
+    "p1": {
+      "frames": 385.0,
+      "dropPct": 99.87,
+      "missedPct": 78.61,
+      "p95Ms": 248.22000000000003,
+      "rasterP95Ms": 123.47999999999999,
+      "makespanMs": 61518.5,
+      "critP95Ms": 26588.5,
+      "bgMaxWaitMs": 42817.0,
+      "done": 744.5,
+      "total": 2130.0,
+      "dropped": 0.0
+    },
+    "p2": {
+      "frames": 357.5,
+      "dropPct": 100.0,
+      "missedPct": 80.14,
+      "p95Ms": 254.90500000000003,
+      "rasterP95Ms": 135.35,
+      "makespanMs": 61661.0,
+      "critP95Ms": 29384.0,
+      "bgMaxWaitMs": 43966.0,
+      "done": 875.0,
+      "total": 2130.0,
+      "dropped": 0.0
+    },
+    "p3": {
+      "frames": 364.5,
+      "dropPct": 99.88499999999999,
+      "missedPct": 79.75,
+      "p95Ms": 290.61,
+      "rasterP95Ms": 154.895,
+      "makespanMs": 61501.0,
+      "critP95Ms": 506.0,
+      "bgMaxWaitMs": 46299.0,
+      "done": 679.0,
+      "total": 2130.0,
+      "dropped": 0.0
+    },
+    "p4": {
+      "frames": 510.5,
+      "dropPct": 99.605,
+      "missedPct": 71.64,
+      "p95Ms": 154.54000000000002,
+      "rasterP95Ms": 80.41,
+      "makespanMs": 61634.5,
+      "critP95Ms": 286.0,
+      "bgMaxWaitMs": 34122.0,
+      "done": 648.5,
+      "total": 2130.0,
+      "dropped": 503.5
+    }
+  }
+}

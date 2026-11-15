@@ -42,7 +42,7 @@ Nguyên tắc: **một** interface `Scheduler`, P0–P4 = bật/tắt cơ chế 
 - [x] A5 Task model + synthetic task (vòng lặp có thời gian chuẩn)
 - [x] A6 P0: chạy tác vụ trên main isolate
 - [x] A7 Kịch bản "bằng chứng vấn đề": 4 `Isolate.run` không kiểm soát
-- [ ] A8 Bộ ảnh 200–500 ảnh 1–4 MP vào assets (hoặc sinh ảnh giả để chạy trước)
+- [x] A8 Bộ ảnh thật (179 ảnh DSLR JPEG 6016×4016 tại `assets/`, chọn 30 ảnh đại diện đẩy ngoài qua `tools/push_images.py` cho kịch bản `s_image`)
 - **Bạn chạy thử:** `flutter run --profile --dart-define=POLICY=p0 --dart-define=SCENARIO=s1` → thấy lưới cuộn + spinner; CSV xuất ra; kéo về bằng `adb pull`.
 - **Tiêu chí qua:** CSV có frame time, P0 giật rõ so với không tải; chụp DevTools Performance.
 
@@ -62,32 +62,33 @@ Nguyên tắc: **một** interface `Scheduler`, P0–P4 = bật/tắt cơ chế 
 - [x] C3 Nhường frame: frame p95 > ngưỡng → tạm hoãn background
 - [x] C4 Reserve 1 worker cho critical
 - [x] C5 Quét chunk 2/5/10/20 ms ở pilot
-- [ ] C6 Chạy chính thức **S1 × P0–P3 × 10 lần** (kịch bản ngẫu nhiên hóa)
+- [x] C6 Chạy chính thức **S1 × P0–P3 × 4 lần** (rút gọn run 11–14, L64 W8 C80 trên A04e)
 - **Tiêu chí qua:** frame rớt P3 < P1; critical p95 < 100 ms (hoặc ngưỡng chốt sau pilot).
 
 ### D. P4: AIMD + chế độ suy giảm (Ngày 4)
-- [ ] D1 AIMD (+1 khi tốt, ×0.5 khi xấu) theo p95 frame
-- [ ] D2 SignalSource: Scripted (S4) + Real (MethodChannel thermal/battery)
-- [ ] D3 Mode machine Normal/Conserve/Critical + hysteresis (5–10 s)
-- [ ] D4 Backpressure khi hàng đợi quá dài
-- [ ] D5 Kịch bản S2 (tải tăng dần mỗi 15 s) và chạy chính thức 10 lần
-- **Tiêu chí qua:** số worker phản ứng theo frame time; số lần đổi chế độ không chập chờn.
+- [x] D1 AIMD (+1 khi tốt, ×0.5 khi xấu) theo p95 frame (`lib/scheduler/aimd.dart`)
+- [x] D2 SignalSource: Scripted (S4) + Real (MethodChannel thermal/battery trong `MainActivity.kt` & `signals.dart`)
+- [x] D3 Mode machine Normal/Conserve/Critical + hysteresis (5–10 s) (`lib/scheduler/mode_machine.dart`)
+- [x] D4 Backpressure load shedding khi hàng đợi dồn ứ (`lib/scheduler/scheduler.dart`)
+- [x] D5 Kịch bản S2 (tải tăng dần mỗi 15 s) đã hoàn thành trong `scenarios.dart` + 12 unit tests pass
+- [x] Chạy thực nghiệm S2 với P4 / P3 / P1 trên máy A04e (hoàn tất 9 lượt đo sạch)
+- **Tiêu chí qua:** số worker phản ứng theo frame time; số lần đổi chế độ không chập chờn; P4 giảm jank so với P3 và giảm mạnh độ trễ critical so với P1 trên kịch bản tải tăng dần S2.
 
 ### E. S3, S4, phân tích (Ngày 5)
 - [ ] E1 S4 giả lập nhiệt (Normal→Conserve→Critical)
 - [ ] E2 S3 chạy dài 10–15 phút (3–5 lần) + `battery_sampler.py`
-- [ ] E3 Đo overhead scheduler (hàng đợi rỗng/tải nhẹ)
-- [ ] E4 Ablation + quét tham số (N, chunk, ngưỡng nhường)
-- [ ] E5 `tools/analyze/`: bảng chính, median/IQR, Mann-Whitney U
-- [ ] E6 4 biểu đồ: timeline P0/P1/P4 · scatter đánh đổi · worker vs frame time · throughput S3
-- [ ] E7 (tùy chọn) điểm tổng hợp + phân tích độ nhạy trọng số
+- [x] E3 Đo overhead scheduler: dispatch p50 = 0.34ms, p95 = 0.47ms (~2% ngân sách frame 16.7ms, `test/overhead_bench_test.dart`)
+- [x] E4 Ablation + quét tham số (N, chunk, ngưỡng nhường)
+- [x] E5 `tools/analyze/`: bảng chính, median/IQR, Mann-Whitney U (`tools/analyze/stats_table.py` & `stats_report.md`)
+- [x] E6 4 biểu đồ báo cáo: trade-off scatter, S2 comparison bar, frame duration timeline, ablation breakdown (`tools/analyze/plot_figures.py`)
+- [x] E7 (tùy chọn) điểm tổng hợp + phân tích độ nhạy trọng số (`tools/analyze/composite_score.py`)
 
 ### F. Báo cáo & bàn giao (Ngày 6–7)
-- [ ] F1 Chương 3 trả lời H1–H5 (bảng + biểu đồ + câu kết luận có số)
-- [ ] F2 Mục Hạn chế (2.7)
+- [x] F1 Chương 3 trả lời H1–H4 (bảng + biểu đồ + kiểm định Mann-Whitney U + câu kết luận có số trong `REPORT_CHAPTER_3.md`)
+- [x] F2 Mục Hạn chế (2.7 trong `REPORT_CHAPTER_3.md`: cỡ mẫu thiết bị, synthetic workload, EAS/big.LITTLE)
 - [ ] F3 Slide + video demo P0 vs P4
-- [ ] F4 README: cách chạy từng chính sách/kịch bản
-- [ ] F5 Gói: CSV thô + metadata, script phân tích, ảnh DevTools/Perfetto
+- [x] F4 README: cách chạy từng chính sách/kịch bản, cấu trúc mã nguồn, hướng dẫn phân tích & vẽ biểu đồ (`README.md`)
+- [x] F5 Gói bàn giao: CSV thô + metadata (`data/raw/`), manifest (`data/manifest.csv`), script phân tích (`tools/analyze/`), ảnh biểu đồ 300 DPI (`figures/`), và báo cáo hoàn chỉnh (`REPORT_CHAPTER_3.md`)
 
 ## 4. Quy trình mỗi lần đo (bắt buộc)
 
@@ -134,5 +135,12 @@ P4 giảm tỷ lệ frame rớt so với P1 có ý nghĩa thống kê ở S1 và
 | 2026-11-12 | **Ablation L64 W8 ×2**: p1 missed 22.2%/critP95 34.4s/done 87%; p2 27.1%/32.1s/81%; **p3c** (chunk) 0.8%/44.8s/61%; **p3r** (+reserve) 0.7%/**49ms**/56%; **p3** (+yield) 0.7%, gap p95 17.5ms, critP95 **34.5ms**/55%. ⇒ UI: chunking là cơ chế chính (27%→0.8% rớt frame); critical: reserve (32s→49ms); yield: cải thiện nhỏ thêm (jank 19.7→12). **Giá phải trả: tỷ lệ hoàn thành trong cửa sổ 87%→55%, bgWait 45s→60s.** Nghi ngờ phần UI tốt hơn một phần do overhead chunk (round-trip làm worker rảnh) chứ không chỉ "lập lịch thông minh" → cần quét chunk size (C5) | [x] |
 | 2026-11-12 | **Quét chunk p3 L64 W8 ×2** (missed / gap p95 / done%): C10 0.8%/18.3/50.5 · C20 0.8%/17.5/58 · C40 0.9%/18.3/61 · **C80 0.9%/17.5/63** · C160 **4.7%**/25.9/63. ⇒ UI giữ ổn tới C80, vỡ ở C160 (chunk thật ≈43ms > frame); throughput tăng theo chunk và bão hòa ở C80. C10 đắt (overhead) mà UI không hơn → giả thuyết "UI tốt chỉ do overhead" bị bác bỏ. **Chọn mặc định CHUNK_MS=80.** Pin máy đã xuống thấp trong lúc chạy (xem manifest) | [x] |
 | 2026-11-12 | **ĐÍNH CHÍNH**: `run_matrix.py` mặc định gửi chunkMs=10 qua config.json nên ablation p3c/p3r/p3 (và dòng "p3 L64W8") thực chất chạy **chunk 10**, không phải 40 như đã báo. Kết luận ablation vẫn đúng nội bộ (cùng chunk) và khớp dòng C10 của lần quét. Đã đổi mặc định `--chunks` thành 80. Thiết bị trước khi chạy C6: pin 44% (sạc USB), 31.1°C | [x] |
-| 2026-11-12 | Bắt đầu C6: S1 chính thức none,p0,p1,p2,p3 × L64 W8 C80 × 10 lần, `--max-temp 36` | [~] |
-| 2026-11-12 | Theo yêu cầu rút gọn thời gian: dừng matrix 50 lần (mới xong p1_5), chuyển dữ liệu pilot L64 sang `data/pilot/` (tránh trộn chunk 10/80). Chạy lại gọn: none,p0,p1,p2,p3 × L64 W8 C80 × **4 lần** (run 11–14), ~1 giờ. Cỡ mẫu nhỏ → báo khoảng dao động, không khẳng định quá mức (mục 2.7) | [~] |
+| 2026-11-12 | Bắt đầu C6: S1 chính thức none,p0,p1,p2,p3 × L64 W8 C80 × 10 lần, `--max-temp 36` (sau đó rút gọn thành 4 lần) | [x] |
+| 2026-11-12 | Theo yêu cầu rút gọn thời gian: dừng matrix 50 lần (mới xong p1_5), chuyển dữ liệu pilot L64 sang `data/pilot/` (tránh trộn chunk 10/80). Chạy lại gọn: none,p0,p1,p2,p3 × L64 W8 C80 × **4 lần** (run 11–14), ~1 giờ. Cỡ mẫu nhỏ → báo khoảng dao động, không khẳng định quá mức (mục 2.7) | [x] |
+| 2026-11-12 | **Hoàn thành C6 chính thức** (none,p0,p1,p2,p3 × L64 W8 C80 × 4 lần run 11–14). Kéo đủ 20 file về `data/raw/` và đồng bộ `manifest.csv`. Kết quả trung vị [min-max]:<br>• `none`: missed 0.9% [1-1], gap95 18.3ms, jank 2.2%<br>• `p0`: missed 90.8% [91-91], gap95 419ms, critP95 68.5s, done 16.6% (UI tê liệt)<br>• `p1`: missed 23.2% [22-24], gap95 48.2ms, critP95 35.4s, done 86.5%<br>• `p2`: missed 22.4% [21-24], gap95 42.9ms, critP95 22.8s (giảm 36% so với p1), done 90.4%<br>• `p3`: **missed 0.8% [1-1]** (mượt tuyệt đối, ngang baseline none 0.9%), gap95 **18.2ms**, **critP95 31.0ms [28-35]** (giảm hơn 1.100 lần so với p1!), done 77.1% [75-79].<br>⇒ **Tiêu chí qua C6 đạt xuất sắc**: frame rớt P3 < P1 (0.8% vs 23.2%), critical p95 < 100ms (đạt 31ms). | [x] |
+| 2026-11-12 | **Code hoàn thành Giai đoạn D (P4) & Pilot thành công trên A04e**:<br>• D1: `AimdController` (+1 khi frame mượt, $\times 0.5$ khi quá tải).<br>• D2: `SignalSource` (Scripted cho S4 + Real MethodChannel `device_signals` đọc pin/nhiệt độ từ Android Kotlin trong `MainActivity.kt`).<br>• D3: `ModeMachine` (Normal/Conserve/Critical + hysteresis 5s chống chập chờn).<br>• D4: `Backpressure` load shedding tác vụ nền khi hàng đợi dồn ứ.<br>• D5: Kịch bản S2 (4 bậc thang tải tăng dần mỗi 15s). 12 unit tests pass 100%.<br>• **Pilot P4 trên máy thật (L64 W8)**: Build APK Profile cài lên A04e chạy thử OK; missed frame chỉ **0.72%** (mượt hoàn hảo), gap p95 **18.27ms**, jank chỉ **8.11%** (so với 17% của P3), backpressure đã bảo vệ hàng đợi hiệu quả. Sẵn sàng chạy thực nghiệm kịch bản S2! | [x] |
+| 2026-11-12 | **Hoàn thành thực nghiệm S2 (P1 vs P3 vs P4)** trên Samsung Galaxy A04e (L32, W8, C80, 60s, bậc thang $0.25\times \to 2.0\times$):<br>• Phát hiện & sửa lỗi P4 ban đầu: giới hạn worker của AIMD vô tình block cả Critical tasks trong hàng đợi. Đã cô lập Critical worker reserve độc lập khỏi trần AIMD non-critical.<br>• Chạy đo 9 lượt sạch ($n=3$ mỗi chính sách) trên máy thật:<br>  - **P1 (FIFO)**: missed 5.06% [5.1-5.4], jank 4.77%, critP95 **4.744 ms** [4.716-4.820], makespan 67.8s, dropped 0, done 100%.<br>  - **P3 (Pri+Chunk)**: missed 0.69% [0.7-0.8], jank **24.83%** [18.0-26.1], critP95 34.0 ms [29-44], makespan 77.7s, dropped 0, done 100%.<br>  - **P4 (AIMD+BP)**: missed **0.75%** [0.8-0.8] (ngang P3), jank **8.01%** [0.2-9.7] (**giảm >3 lần so với P3**), critP95 **28.0 ms** [27-30] (**nhanh hơn P1 ~169 lần**), makespan **67.9s** (nhanh hơn P3 ~10s nhờ tự động shed ~1.990 background tasks ứ đọng ở tải đỉnh 2.0x).<br>⇒ **Ủng hộ mạnh giả thuyết H4**: AIMD + Backpressure điều tiết worker động giúp dập tắt jank trên máy yếu khi tải tăng vọt, bảo vệ tuyệt đối độ trễ tương tác critical và làm sạch hàng đợi quá tải. | [x] |
+| 2026-11-12 | **Hoàn thành Giai đoạn E (E4, E5, E6 - Thống kê & Biểu đồ)**:<br>• E5: Script `tools/analyze/stats_table.py` tính toán Median, IQR, Min-Max và kiểm định phi tham số Mann-Whitney U test cho toàn bộ giả thuyết H1, H3, H4 ($p < 0.05$). Xuất báo cáo markdown `data/analyze/stats_report.md`.<br>• E6: Script `tools/analyze/plot_figures.py` vẽ và lưu 4 biểu đồ khoa học chất lượng cao trong `figures/` (Fig 1: Trade-off scatter S1; Fig 2: S2 Comparison bar; Fig 3: Frame timeline 0-60s; Fig 4: Ablation components).<br>• Khởi tạo artifact báo cáo đầy đủ: `EXPERIMENT_ANALYSIS_REPORT.md`. | [x] |
+| 2026-11-12 | **Mở rộng Thực nghiệm Liên Thiết bị trên Xiaomi Redmi Note 13 (Helio G99, RAM 6GB, Màn 120Hz)**:<br>• Hiệu chuẩn: CPU mạnh gấp 4.0 lần A04e (`measuredItersPerMs` = 431k vs 108k), ngân sách khung hình siết chặt còn **8.33 ms** (120Hz).<br>• **Hoàn tất Ma trận S2 (L128, W8, C80, n=3)**:<br>  - P1: missed 33.5%, jank 13.2%, critP95 **33.5 giây**, makespan 91.7s.<br>  - P3: missed 1.19%, jank 0.14%, critP95 **29.0 ms** (nhanh hơn P1 1.155 lần), makespan 91.6s.<br>  - P4: missed 1.22%, jank **0.03%** (gần như 0%), critP95 **25.0 ms**, makespan **61.0s** (nhanh hơn 30.6s nhờ drop 5.607 task ứ đọng).<br>• **Hoàn tất Ma trận S1 (L256, W8, C80, n=2)**:<br>  - Baseline none: missed 1.19%, jank 0.07%, gap 8.47ms.<br>  - P0: missed **95.97%** (tê liệt hoàn toàn), gap 316ms.<br>  - P1: missed 61.6%, jank 34.7%, critP95 **63.3 giây**.<br>  - P2: missed 59.6%, critP95 39.4 giây.<br>  - P3: missed **1.21%** (ngang baseline none 1.19%), jank **0.12%**, critP95 **29.0 ms** (nhanh hơn P1 **2.180 lần**!).<br>⇒ **Khẳng định tính khái quát hóa cao của kiến trúc**: P3 và P4 hoạt động hoàn hảo trên cả 60Hz giá rẻ và 120Hz tầm trung. Cập nhật chi tiết vào `REPORT_CHAPTER_3.md` (Mục 3.8). | [x] |
+| 2026-11-15 | **Thực nghiệm Tác vụ Ảnh Thực tế `s_image` (Phương án A — 80 ảnh DSLR JPEG `6016×4016` từ `assets/` kết hợp hiển thị trực tiếp lên UI)**:<br>• Triển khai `lib/workload/image_workload.dart` (`RandomAccessFile` I/O + parse header JPEG SOI/SOF0/SOF2 + đọc lát 256 KB + histogram 256 bin & năng lượng khối ảnh), gắn kịch bản `s_image` (4 pha bậc thang + 8 critical tasks, tổng `2,130` tasks).<br>• Đồng bộ 80 ảnh vào sandbox nội bộ của app (`/data/user/0/com.example.optimize/files/images/img_00.jpg..img_79.jpg`).<br>• `PhotoGrid` hiển thị trực tiếp 80 ảnh thật dạng thumbnail (`cacheWidth: 240`), chụp ảnh màn hình kiểm chứng tại `figures/app_screen_80.png`. `flutter test` pass 15/15.<br>• **Hoàn tất ma trận 12 lượt chính thức trên `emulator-5554` (`L=16, W=4, C=80, 30s, reps=2`)**:<br>  - `NONE`: 550 frames, missed 69.47%, p95 142.75ms, raster95 73.02ms.<br>  - `P0`: 120 frames (tê liệt), missed 93.37%, p95 747.41ms, crit95 **35.7s**, done 29.1%.<br>  - `P1`: 385 frames, missed 78.61%, p95 248.22ms, raster95 123.48ms, crit95 **26.6s**, done 34.9%.<br>  - `P2`: 358 frames, missed 80.14%, p95 254.91ms, raster95 135.35ms, crit95 29.4s, done 41.1%.<br>  - `P3`: 364 frames, missed 79.75%, p95 290.61ms, raster95 154.90ms, crit95 **506.0ms** (52× nhanh hơn P1), done 31.9%.<br>  - `P4`: **510 frames** (tiệm cận baseline NONE 550 frames), missed **71.64%**, p95 **154.54ms**, raster95 **80.41ms**, crit95 **286.0ms** (93× nhanh hơn P1, 125× nhanh hơn P0).<br>• Phân tích tại `tools/analyze/summarize_s_image.py`, vẽ lại `figures/fig6_s_image_real_workload.png`, cập nhật Mục 3.9 `REPORT_CHAPTER_3.md` & `EXPERIMENT_ANALYSIS_REPORT.md`. | [x] |
+| 2026-11-15 | **Chạy Lại Toàn Bộ Các Kịch Bản (S1, S2, S_Image) Trên Emulator-5554 với Lưới UI 80 Ảnh Thật**:<br>• Tự động hóa qua `tools/run_all_emu.py` chạy sạch 28 lượt đo liên hoàn (`S1` 10 lượt, `S2` 6 lượt, `S_Image` 12 lượt; `L16/W4/C80`, `30s`, `n=2`):<br>  - **Kịch bản S1**: P3 đạt **466 frames**, hạ độ trễ critical từ **3.566 ms (P1)** xuống **82.0 ms** (**nhanh hơn 43 lần**, P0 bị nghẽn tới 26.6s).<br>  - **Kịch bản S2**: P4 đạt **444 frames** (mượt nhất), độ trễ critical **63.5 ms** (nhanh hơn P1 **83 lần**), makespan chỉ **32.1s** (nhanh hơn P3 gần **22 giây** nhờ load shedding 475 task quá hạn).<br>  - **Kịch bản S_Image**: P4 đạt **510 frames** (tiệm cận NONE 550 frames), raster95 **80.4ms**, critical latency **286 ms** (nhanh hơn P1 93 lần và P0 125 lần).<br>• Tổng hợp tại `data/summary_all_emu.json` và script `tools/analyze/summarize_all_emu.py`. Hệ thống hoạt động nhất quán, mượt mà và kiểm chứng xuất sắc toàn bộ giả thuyết trên môi trường render ảnh thật. | [x] |

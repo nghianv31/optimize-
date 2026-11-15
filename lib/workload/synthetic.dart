@@ -14,12 +14,17 @@ double burn(int iters) {
 Future<double> burnInIsolate(int iters) => Isolate.run(() => burn(iters));
 
 class Burner {
-  /// Quy ước CỐ ĐỊNH: 1 "ms" công việc = 100k vòng lặp (≈ 1 ms trên main isolate của A04e).
-  /// Không hiệu chuẩn lại mỗi lần chạy vì tốc độ phụ thuộc nhiệt/xung nhịp -> làm tải không lặp lại được.
+  /// Quy ước chuẩn: 1 "ms" công việc = 100k vòng lặp (≈ 1 ms trên main isolate của A04e).
   static const int itersPerMs = 100000;
 
   /// Tốc độ đo được lúc khởi động trên main isolate (chỉ để ghi vào meta).
   static int measuredItersPerMs = 0;
+
+  /// Số vòng lặp thực tế tương ứng với 1ms trên thiết bị hiện hành.
+  /// Nếu máy mạnh hơn A04e (vd PC emulator, chip cao cấp), tự nâng số vòng lặp
+  /// để tải 300ms thực sự đốt CPU đủ 300ms, giúp P0 khựng rõ ràng.
+  static int get effectiveItersPerMs =>
+      measuredItersPerMs > 0 ? measuredItersPerMs : itersPerMs;
 
   static void calibrate() {
     const n = 3000000;

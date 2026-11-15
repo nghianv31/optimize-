@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../scheduler/task.dart';
 
-/// Thư mục xuất: /sdcard/Android/data/<pkg>/files (kéo về bằng adb pull).
+/// Thư mục xuất: /sdcard/Android/data/{pkg}/files (kéo về bằng adb pull).
 Future<Directory> outDir() async {
   final d = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
   await d.create(recursive: true);

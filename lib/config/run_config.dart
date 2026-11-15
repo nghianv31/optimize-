@@ -57,7 +57,7 @@ class RunConfig {
         warmupS: const int.fromEnvironment('WARMUP_S', defaultValue: 10),
         durationS: const int.fromEnvironment('DURATION_S', defaultValue: 60),
         graceS: const int.fromEnvironment('GRACE_S', defaultValue: 30),
-        autorun: const bool.fromEnvironment('AUTORUN', defaultValue: true),
+        autorun: const bool.fromEnvironment('AUTORUN', defaultValue: false),
         yieldMs: const int.fromEnvironment('YIELD_MS', defaultValue: 20),
         deferCapMs: const int.fromEnvironment('DEFER_CAP_MS', defaultValue: 8000),
         tag: const String.fromEnvironment('TAG', defaultValue: ''),
@@ -76,6 +76,45 @@ class RunConfig {
     } catch (_) {}
     return env;
   }
+
+  RunConfig copyWith({
+    String? policy,
+    String? scenario,
+    String? device,
+    int? run,
+    int? seed,
+    int? workers,
+    int? chunkMs,
+    int? agingMs,
+    double? load,
+    int? settleS,
+    int? warmupS,
+    int? durationS,
+    int? graceS,
+    bool? autorun,
+    int? yieldMs,
+    int? deferCapMs,
+    String? tag,
+  }) =>
+      RunConfig(
+        policy: policy ?? this.policy,
+        scenario: scenario ?? this.scenario,
+        device: device ?? this.device,
+        run: run ?? this.run,
+        seed: seed ?? this.seed,
+        workers: workers ?? this.workers,
+        chunkMs: chunkMs ?? this.chunkMs,
+        agingMs: agingMs ?? this.agingMs,
+        load: load ?? this.load,
+        settleS: settleS ?? this.settleS,
+        warmupS: warmupS ?? this.warmupS,
+        durationS: durationS ?? this.durationS,
+        graceS: graceS ?? this.graceS,
+        autorun: autorun ?? this.autorun,
+        yieldMs: yieldMs ?? this.yieldMs,
+        deferCapMs: deferCapMs ?? this.deferCapMs,
+        tag: tag ?? this.tag,
+      );
 
   RunConfig _merge(Map<String, dynamic> m) => RunConfig(
         policy: (m['policy'] ?? policy) as String,
