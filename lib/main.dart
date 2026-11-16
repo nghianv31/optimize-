@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'config/run_config.dart';
 import 'run_controller.dart';
+import 'ui/demo_banner.dart';
 import 'ui/demo_dock.dart';
 import 'ui/monitor_overlay.dart';
 import 'ui/photo_grid.dart';
@@ -131,11 +132,17 @@ class _RunPageState extends State<RunPage> {
             ),
           ),
 
-          // Màn hình HUD đo lường ở góc trên
+          // Dải demo: pha hiện tại, quả bóng dò giật, chỉ số dấu hiệu
+          DemoBanner(controller: ctl),
+
+          // Màn hình HUD đo lường (mặc định thu gọn)
           MonitorOverlay(snapshotNotifier: ctl.monitor),
 
           // Thanh điều khiển Live Demo nhanh ở góc dưới
           DemoControlDock(controller: ctl),
+
+          // Bảng so sánh cộng dồn sau mỗi lần chạy demo
+          DemoScoreboard(controller: ctl),
         ],
       ),
     );

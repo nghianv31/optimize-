@@ -291,7 +291,7 @@ class P4Scheduler extends Scheduler {
           initialWorkers: min(2.0, cfg.workers.toDouble()),
         ),
         modeMachine = ModeMachine(hysteresisMs: 5000),
-        signalSource = cfg.scenario == 's4' ? ScriptedSignalSource() : DeviceSignalSource();
+        signalSource = cfg.scenario == 's4' ? ScriptedSignalSource() : SimAwareSignalSource(DeviceSignalSource());
 
   final RunConfig cfg;
   final bool useAimd;

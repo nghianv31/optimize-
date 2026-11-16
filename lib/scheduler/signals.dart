@@ -2,6 +2,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../metrics/stats.dart';
+import 'thermal_sim.dart';
 import 'mode_machine.dart';
 
 /// Tín hiệu "UI đang bận" lấy tức thời từ khoảng cách giữa các frame
@@ -95,4 +96,19 @@ class DeviceSignalSource extends SignalSource {
     }
     return DegradeMode.normal;
   }
+}
+
+/// Dùng nhiệt độ mô phỏng khi demo đang bật mô hình nhiệt, ngược lại dùng nguồn thật.
+class SimAwareSignalSource extends SignalSource {
+  SimAwareSignalSource(this.inner);
+  final SignalSource inner;
+
+  @override
+  Future<void> init() => inner.init();
+
+  @override
+  DegradeMode sample(int elapsedMs) => ThermalSim.active ? ThermalSim.mode : inner.sample(elapsedMs);
+
+  @override
+  Future<void> dispose() => inner.dispose();
 }

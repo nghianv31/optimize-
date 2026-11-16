@@ -56,7 +56,7 @@ class MonitorOverlay extends StatefulWidget {
 }
 
 class _MonitorOverlayState extends State<MonitorOverlay> {
-  bool _expanded = true;
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +70,7 @@ class _MonitorOverlayState extends State<MonitorOverlay> {
         final progress = snap.totalS > 0 ? (snap.elapsedS / snap.totalS).clamp(0.0, 1.0) : 0.0;
 
         return Positioned(
-          top: 6,
+          top: 140,
           left: 8,
           right: 8,
           child: Material(

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../config/run_config.dart';
 import '../scheduler/task.dart';
+import 'demo_scenario.dart';
 
 class TaskSpec {
   final int atMs; // thời điểm đến dự kiến, tính từ đầu kịch bản
@@ -21,6 +22,8 @@ List<TaskSpec> buildScenario(RunConfig c) {
       return _s2(c);
     case 's4':
       return _s1(c); // S4 dùng cùng mẫu tác vụ S1 nhưng kết hợp ScriptedSignalSource
+    case 'demo':
+      return buildDemoScenario(c.seed);
     case 's_image':
       return _sImage(c);
     default:

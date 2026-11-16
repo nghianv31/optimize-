@@ -116,6 +116,25 @@ P4 giảm tỷ lệ frame rớt so với P1 có ý nghĩa thống kê ở S1 và
 - Nhiễu nhiệt → xáo trộn thứ tự, nghỉ nguội, ghi nhiệt đầu.
 - Overfitting ngưỡng → pilot dùng seed/kịch bản khác.
 
+## 7d. BỔ SUNG P2 + P4 VÀ CẢI THIỆN DEMO (2026-11-16)
+
+**Tình trạng dữ liệu A04e (đọc từ `data/raw`):**
+- P0, P1, P3: đủ S1 (L64 W8 C80), P1/P3 có S2 (L32 W8 ×3).
+- **P2**: có S1 (13 lần) nhưng **chưa có S2** → ablation P1→P2→P3 ở S2 và H3 thiếu một đầu.
+- **P4**: S1 chỉ 1 lần (critP95 10.1s, missed 0.72%); S2 có 6 lần nhưng **không đồng nhất**: lần 1–3 critP95 ≈ 7–7.8s, lần 4–6 ≈ 28ms → khả năng lẫn hai phiên bản mã. P4 hoàn thành chỉ 4588/6572 (70%) vs P3 6572/6572 (100%) và UI không tốt hơn P3 (missed 0.75–0.83% vs 0.67–0.83%) → **H4 hiện chưa được ủng hộ**, cần chạy lại sạch rồi mới kết luận.
+
+**Việc cần làm (theo thứ tự):**
+- [ ] D1 Chốt mã P4 (commit), xóa/chuyển `p4_s2_a04e_L32W8_1..3` sang `data/pilot/` (mã cũ) — chỉ giữ lần chạy từ phiên bản mã hiện tại
+- [ ] D2 Chạy S2 L32 W8: `p2` ×3 và `p4` ×4 (so với p1/p3 đã có) ≈ 30 phút máy
+- [ ] D3 Chạy S1 L64 W8: `p4` ×4 (hoàn tất chuỗi P0–P4 cho bảng chính) ≈ 15 phút máy
+- [ ] D4 Chạy `p4_aimd` S2 ×3 (ablation: chỉ AIMD vs thêm chế độ suy giảm + backpressure) ≈ 10 phút
+- [ ] D5 Đọc kết quả P4: nếu vẫn không hơn P3 → báo cáo trung thực (P4 đánh đổi 30% thông lượng; lợi ích dự kiến ở máy nóng/yếu, S4), không chỉnh số
+- [ ] M1 Chế độ **benchmark** tắt HUD/dock (tránh hiệu ứng quan sát), chế độ **demo** giữ HUD
+- [ ] M2 Log sự kiện **chunk** theo worker → vẽ swimlane timeline (offline trước, live sau)
+- [ ] M3 Công tắc bật/tắt chunking/reserve/yield/aging trong dock (ablation trực quan)
+- [ ] M4 Vật chuyển động lớn (bóng + vệt) thay spinner 18px
+- [ ] M5 Tách/gắn nhãn dữ liệu `emu` vs máy thật trong biểu đồ
+
 ## 8. Nhật ký (Claude cập nhật sau mỗi lần bạn báo kết quả)
 
 | Ngày | Việc | Kết quả / log | Trạng thái |
@@ -144,3 +163,4 @@ P4 giảm tỷ lệ frame rớt so với P1 có ý nghĩa thống kê ở S1 và
 | 2026-11-12 | **Mở rộng Thực nghiệm Liên Thiết bị trên Xiaomi Redmi Note 13 (Helio G99, RAM 6GB, Màn 120Hz)**:<br>• Hiệu chuẩn: CPU mạnh gấp 4.0 lần A04e (`measuredItersPerMs` = 431k vs 108k), ngân sách khung hình siết chặt còn **8.33 ms** (120Hz).<br>• **Hoàn tất Ma trận S2 (L128, W8, C80, n=3)**:<br>  - P1: missed 33.5%, jank 13.2%, critP95 **33.5 giây**, makespan 91.7s.<br>  - P3: missed 1.19%, jank 0.14%, critP95 **29.0 ms** (nhanh hơn P1 1.155 lần), makespan 91.6s.<br>  - P4: missed 1.22%, jank **0.03%** (gần như 0%), critP95 **25.0 ms**, makespan **61.0s** (nhanh hơn 30.6s nhờ drop 5.607 task ứ đọng).<br>• **Hoàn tất Ma trận S1 (L256, W8, C80, n=2)**:<br>  - Baseline none: missed 1.19%, jank 0.07%, gap 8.47ms.<br>  - P0: missed **95.97%** (tê liệt hoàn toàn), gap 316ms.<br>  - P1: missed 61.6%, jank 34.7%, critP95 **63.3 giây**.<br>  - P2: missed 59.6%, critP95 39.4 giây.<br>  - P3: missed **1.21%** (ngang baseline none 1.19%), jank **0.12%**, critP95 **29.0 ms** (nhanh hơn P1 **2.180 lần**!).<br>⇒ **Khẳng định tính khái quát hóa cao của kiến trúc**: P3 và P4 hoạt động hoàn hảo trên cả 60Hz giá rẻ và 120Hz tầm trung. Cập nhật chi tiết vào `REPORT_CHAPTER_3.md` (Mục 3.8). | [x] |
 | 2026-11-15 | **Thực nghiệm Tác vụ Ảnh Thực tế `s_image` (Phương án A — 80 ảnh DSLR JPEG `6016×4016` từ `assets/` kết hợp hiển thị trực tiếp lên UI)**:<br>• Triển khai `lib/workload/image_workload.dart` (`RandomAccessFile` I/O + parse header JPEG SOI/SOF0/SOF2 + đọc lát 256 KB + histogram 256 bin & năng lượng khối ảnh), gắn kịch bản `s_image` (4 pha bậc thang + 8 critical tasks, tổng `2,130` tasks).<br>• Đồng bộ 80 ảnh vào sandbox nội bộ của app (`/data/user/0/com.example.optimize/files/images/img_00.jpg..img_79.jpg`).<br>• `PhotoGrid` hiển thị trực tiếp 80 ảnh thật dạng thumbnail (`cacheWidth: 240`), chụp ảnh màn hình kiểm chứng tại `figures/app_screen_80.png`. `flutter test` pass 15/15.<br>• **Hoàn tất ma trận 12 lượt chính thức trên `emulator-5554` (`L=16, W=4, C=80, 30s, reps=2`)**:<br>  - `NONE`: 550 frames, missed 69.47%, p95 142.75ms, raster95 73.02ms.<br>  - `P0`: 120 frames (tê liệt), missed 93.37%, p95 747.41ms, crit95 **35.7s**, done 29.1%.<br>  - `P1`: 385 frames, missed 78.61%, p95 248.22ms, raster95 123.48ms, crit95 **26.6s**, done 34.9%.<br>  - `P2`: 358 frames, missed 80.14%, p95 254.91ms, raster95 135.35ms, crit95 29.4s, done 41.1%.<br>  - `P3`: 364 frames, missed 79.75%, p95 290.61ms, raster95 154.90ms, crit95 **506.0ms** (52× nhanh hơn P1), done 31.9%.<br>  - `P4`: **510 frames** (tiệm cận baseline NONE 550 frames), missed **71.64%**, p95 **154.54ms**, raster95 **80.41ms**, crit95 **286.0ms** (93× nhanh hơn P1, 125× nhanh hơn P0).<br>• Phân tích tại `tools/analyze/summarize_s_image.py`, vẽ lại `figures/fig6_s_image_real_workload.png`, cập nhật Mục 3.9 `REPORT_CHAPTER_3.md` & `EXPERIMENT_ANALYSIS_REPORT.md`. | [x] |
 | 2026-11-15 | **Chạy Lại Toàn Bộ Các Kịch Bản (S1, S2, S_Image) Trên Emulator-5554 với Lưới UI 80 Ảnh Thật**:<br>• Tự động hóa qua `tools/run_all_emu.py` chạy sạch 28 lượt đo liên hoàn (`S1` 10 lượt, `S2` 6 lượt, `S_Image` 12 lượt; `L16/W4/C80`, `30s`, `n=2`):<br>  - **Kịch bản S1**: P3 đạt **466 frames**, hạ độ trễ critical từ **3.566 ms (P1)** xuống **82.0 ms** (**nhanh hơn 43 lần**, P0 bị nghẽn tới 26.6s).<br>  - **Kịch bản S2**: P4 đạt **444 frames** (mượt nhất), độ trễ critical **63.5 ms** (nhanh hơn P1 **83 lần**), makespan chỉ **32.1s** (nhanh hơn P3 gần **22 giây** nhờ load shedding 475 task quá hạn).<br>  - **Kịch bản S_Image**: P4 đạt **510 frames** (tiệm cận NONE 550 frames), raster95 **80.4ms**, critical latency **286 ms** (nhanh hơn P1 93 lần và P0 125 lần).<br>• Tổng hợp tại `data/summary_all_emu.json` và script `tools/analyze/summarize_all_emu.py`. Hệ thống hoạt động nhất quán, mượt mà và kiểm chứng xuất sắc toàn bộ giả thuyết trên môi trường render ảnh thật. | [x] |
+| 2026-11-16 | Rà dữ liệu: P2 thiếu S2; P4 thiếu S1, S2 lẫn 2 phiên bản mã (crit 7s vs 28ms), done 70% vs P3 100%. Thêm mục 7d | – | [x] |

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -11,10 +13,13 @@ import 'config/run_config.dart';
 import 'metrics/csv_writer.dart';
 import 'metrics/frame_logger.dart';
 import 'metrics/stats.dart';
+import 'scheduler/mode_machine.dart';
 import 'scheduler/scheduler.dart';
+import 'scheduler/thermal_sim.dart';
 import 'scheduler/task.dart';
 import 'ui/monitor_overlay.dart';
 import 'ui/photo_grid.dart';
+import 'workload/demo_scenario.dart';
 import 'workload/scenarios.dart';
 import 'workload/synthetic.dart';
 
@@ -38,6 +43,18 @@ class RunController {
   final currentPolicy = ValueNotifier<String>('p0');
   final tileStatuses = ValueNotifier<Map<int, TileStatus>>({});
   final isAutoScrolling = ValueNotifier<bool>(false);
+
+  // --- Demo trình diễn có kịch bản ---
+  final demoCaption = ValueNotifier<DemoPhase?>(null);
+  final demoRemainS = ValueNotifier<int>(0);
+  final lastCritMs = ValueNotifier<double?>(null);
+  final thermalView = ValueNotifier<double?>(null);
+  final demoRunning = ValueNotifier<bool>(false);
+  final showScoreboard = ValueNotifier<bool>(false);
+  final demoResults = ValueNotifier<Map<String, DemoResult>>({});
+  bool _frameHookAttached = false;
+  bool _countFrames = false;
+  int _demoFrames = 0;
 
   Scheduler? activeScheduler;
   String? _imagesDir;
@@ -294,6 +311,105 @@ class RunController {
     updateMonitor();
   }
 
+  /// Chạy kịch bản demo 60 s (5 pha) với chính sách đang chọn, rồi thêm kết quả vào bảng so sánh.
+  Future<void> runDemo() async {
+    if (demoRunning.value) return;
+    demoRunning.value = true;
+    showScoreboard.value = false;
+    final pol = currentPolicy.value;
+    _currentCfg = _currentCfg.copyWith(scenario: 'demo', durationS: demoDurationS);
+    await switchPolicy(pol); // scheduler mới, hàng đợi sạch
+    tasks.clear();
+    tileStatuses.value = {};
+    lastCritMs.value = null;
+    ThermalSim.stop();
+    ModeMachine.hysteresisOverrideMs = 1500;
+    if (scroll.hasClients) scroll.jumpTo(0);
+    isAutoScrolling.value = true;
+    _startScroll();
+
+    if (!_frameHookAttached) {
+      _frameHookAttached = true;
+      SchedulerBinding.instance.addPersistentFrameCallback((_) {
+        if (_countFrames) _demoFrames++;
+      });
+    }
+    _demoFrames = 0;
+    _countFrames = true;
+
+    final specs = buildDemoScenario(_currentCfg.seed);
+    final startUs = Timeline.now;
+    final sw = Stopwatch()..start();
+    int lastMs = 0;
+    final ticker = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      final ms = sw.elapsedMilliseconds;
+      final dt = (ms - lastMs) / 1000.0;
+      lastMs = ms;
+      final ph = demoPhaseAt(ms / 1000.0);
+      demoCaption.value = ph;
+      demoRemainS.value = max(0, demoDurationS - ms ~/ 1000);
+      status.value = 'DEMO ${pol.toUpperCase()} • ${ph.title}';
+      if (ph.thermal && !ThermalSim.active) ThermalSim.start();
+      // P0 chạy trên main nên coi như 1 lõi bận; các chính sách khác theo số worker đang chạy
+      ThermalSim.step(dt, (activeScheduler?.activeWorkers ?? 0).toDouble());
+      thermalView.value = ThermalSim.active ? ThermalSim.tempC : null;
+    });
+
+    int id = 1000000;
+    for (final sp in specs) {
+      final wait = sp.atMs - sw.elapsedMilliseconds;
+      if (wait > 0) await Future<void>.delayed(Duration(milliseconds: wait));
+      final t = Task(id: id++, priority: sp.priority, costMs: sp.costMs, chunkable: sp.chunkable)
+        ..submitUs = startUs + sp.atMs * 1000;
+      if (sp.priority == Priority.critical) {
+        t.onComplete = () => lastCritMs.value = (Timeline.now - t.submitUs) / 1000.0;
+      }
+      tasks.add(t);
+      activeScheduler?.submit(t);
+    }
+    final rest = demoDurationS * 1000 - sw.elapsedMilliseconds;
+    if (rest > 0) await Future<void>.delayed(Duration(milliseconds: rest));
+    _countFrames = false;
+    ticker.cancel();
+
+    // ---- Tổng hợp ----
+    final nowUs = Timeline.now;
+    final hz = PlatformDispatcher.instance.views.first.display.refreshRate;
+    final expected = (hz > 0 ? hz : 60.0) * demoDurationS;
+    final missed = max(0.0, (1 - _demoFrames / expected) * 100);
+    final lats = [
+      for (final t in tasks)
+        if (t.priority == Priority.critical) ((t.done ? t.endUs : nowUs) - t.submitUs) / 1000.0
+    ]..sort();
+    final res = DemoResult(
+      policy: pol,
+      missedPct: missed,
+      critP95Ms: percentile(lats, 0.95),
+      donePct: tasks.isEmpty ? 0 : tasks.where((t) => t.done).length * 100.0 / tasks.length,
+      dropped: tasks.where((t) => t.dropped).length,
+      peakTempC: ThermalSim.peakC,
+      throttledS: ThermalSim.throttledS,
+    );
+    demoResults.value = {...demoResults.value, pol: res};
+    debugPrint('DEMO_RESULT ${jsonEncode(res.toJson())}');
+    try {
+      final dir = await outDir();
+      await File('${dir.path}/demo_$pol.json').writeAsString(jsonEncode(res.toJson()));
+    } catch (_) {}
+
+    // ---- Dọn dẹp: hủy việc còn tồn, trả về trạng thái tương tác ----
+    ThermalSim.stop();
+    ModeMachine.hysteresisOverrideMs = null;
+    thermalView.value = null;
+    isAutoScrolling.value = false;
+    if (scroll.hasClients) scroll.jumpTo(scroll.offset);
+    demoCaption.value = null;
+    await switchPolicy(pol);
+    status.value = 'Xong demo ${pol.toUpperCase()}';
+    showScoreboard.value = true;
+    demoRunning.value = false;
+  }
+
   Future<void> start() async {
     frames.attach();
     Burner.calibrate();
@@ -313,6 +429,13 @@ class RunController {
 
     _monitorTicker = Timer.periodic(const Duration(milliseconds: 100), (_) => updateMonitor());
     scroll.addListener(updateMonitor);
+
+    if (cfg.scenario == 'demo') {
+      // Tự chạy kịch bản demo (dùng để hiệu chỉnh/ghi hình, không cần chạm máy)
+      await Future<void>.delayed(const Duration(seconds: 3));
+      await runDemo();
+      return;
+    }
 
     if (!cfg.autorun) {
       // Chế độ Demo tương tác tự do: không chạy kịch bản cố định

@@ -32,7 +32,7 @@ class PhotoGrid extends StatelessWidget {
     return GridView.builder(
       controller: controller,
       physics: const BouncingScrollPhysics(), // Mở khóa cho ngón tay vuốt lướt tự do
-      padding: const EdgeInsets.fromLTRB(4, 70, 4, 120), // Chừa khoảng trống cho HUD ở trên và Dock ở dưới
+      padding: const EdgeInsets.fromLTRB(4, 180, 4, 120), // Chừa khoảng trống cho HUD ở trên và Dock ở dưới
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         mainAxisSpacing: 5,

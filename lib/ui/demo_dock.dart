@@ -124,11 +124,40 @@ class DemoControlDock extends StatelessWidget {
 
               const SizedBox(height: 4),
 
-              // Hàng 3: Lời gợi ý chỉ dẫn
-              const Text(
-                '👆 Chạm vào bất kỳ ô ảnh nào bên trên để thử thách độ trễ mở ảnh (VIP)',
-                style: TextStyle(color: Colors.white54, fontSize: 9.5, fontStyle: FontStyle.italic),
-                textAlign: TextAlign.center,
+              // Hàng 3: chạy kịch bản demo 60 s và bảng so sánh
+              Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: controller.demoRunning,
+                      builder: (_, running, _) => FilledButton.icon(
+                        onPressed: running ? null : controller.runDemo,
+                        icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                        label: Text(running ? 'Đang chạy demo...' : 'CHẠY DEMO 60s',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    flex: 3,
+                    child: OutlinedButton.icon(
+                      onPressed: () => controller.showScoreboard.value = true,
+                      icon: const Icon(Icons.table_chart_rounded, size: 16),
+                      label: const Text('So sánh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF38BDF8)),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

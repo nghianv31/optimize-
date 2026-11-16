@@ -26,6 +26,9 @@ class ModeMachine {
 
   final int hysteresisMs;
 
+  /// Demo: rút ngắn độ trễ để chuyển chế độ kịp trong 15 s của pha "máy nóng".
+  static int? hysteresisOverrideMs;
+
   DegradeMode currentMode;
   DegradeMode _candidateMode;
   int _candidateStartUs = 0;
@@ -53,7 +56,7 @@ class ModeMachine {
       _candidateStartUs = nowUs;
     } else {
       // Mục tiêu duy trì ổn định, kiểm tra đã đủ thời gian trễ chưa
-      if (nowUs - _candidateStartUs >= hysteresisMs * 1000) {
+      if (nowUs - _candidateStartUs >= (hysteresisOverrideMs ?? hysteresisMs) * 1000) {
         currentMode = _candidateMode;
         transitions++;
         history.add({
