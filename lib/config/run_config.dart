@@ -49,7 +49,7 @@ class RunConfig {
         device: const String.fromEnvironment('DEVICE', defaultValue: 'dev'),
         run: const int.fromEnvironment('RUN', defaultValue: 1),
         seed: const int.fromEnvironment('SEED', defaultValue: 42),
-        workers: const int.fromEnvironment('WORKERS', defaultValue: 3),
+        workers: const int.fromEnvironment('WORKERS', defaultValue: 8),
         chunkMs: const int.fromEnvironment('CHUNK_MS', defaultValue: 80),
         agingMs: const int.fromEnvironment('AGING_MS', defaultValue: 3000),
         load: double.parse(const String.fromEnvironment('LOAD', defaultValue: '1.0')),

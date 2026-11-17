@@ -43,6 +43,9 @@ class RunController {
   final currentPolicy = ValueNotifier<String>('p0');
   final tileStatuses = ValueNotifier<Map<int, TileStatus>>({});
   final isAutoScrolling = ValueNotifier<bool>(false);
+  final continuousLoad = ValueNotifier<bool>(false);
+  final thermalOverload = ValueNotifier<bool>(false);
+  final uiStress = ValueNotifier<bool>(false);
 
   // --- Demo trình diễn có kịch bản ---
   final demoCaption = ValueNotifier<DemoPhase?>(null);
@@ -55,6 +58,7 @@ class RunController {
   bool _frameHookAttached = false;
   bool _countFrames = false;
   int _demoFrames = 0;
+  bool _abortDemo = false;
 
   Scheduler? activeScheduler;
   String? _imagesDir;
@@ -118,8 +122,16 @@ class RunController {
     return (null, <String>[]);
   }
 
-  /// Cập nhật Monitor Snapshot tức thời cho giao diện HUD
-  void updateMonitor() {
+  int _lastMonitorUpdateUs = 0;
+
+  /// Cập nhật Monitor Snapshot tức thời cho giao diện HUD (có throttle chống spam khi cuộn)
+  void updateMonitor({bool force = false}) {
+    final nowUs = Timeline.now;
+    if (!force && (nowUs - _lastMonitorUpdateUs) < 100000) {
+      return;
+    }
+    _lastMonitorUpdateUs = nowUs;
+
     final nowRows = frames.rows;
     final count = nowRows.length;
     final hz = PlatformDispatcher.instance.views.first.display.refreshRate;
@@ -155,26 +167,32 @@ class RunController {
 
     final double curMs = recentDurations.isNotEmpty ? recentDurations.last : 12.0;
 
-    // Đếm số khung hình thực tế trong 1000ms gần nhất để hiển thị FPS chuẩn xác
-    final nowUs = Timeline.now;
-    final oneSecAgo = nowUs - 1000000;
-    int framesInLastSec = 0;
-    for (int i = nowRows.length - 1; i >= 0; i--) {
-      if (nowRows[i][0] >= oneSecAgo) {
-        framesInLastSec++;
-      } else {
-        break;
+    // Tính toán FPS tức thời chuẩn xác dựa trên khoảng thời gian thực tế giữa các khung hình
+    double curFps = hz > 0 ? hz : 60.0;
+    if (nowRows.length >= 2) {
+      final latestVsync = nowRows.last[0];
+      final windowSpanUs = 1000000; // Cửa sổ trượt 1 giây
+      final cutoff = latestVsync - windowSpanUs;
+      int count = 0;
+      int earliestVsync = latestVsync;
+      for (int i = nowRows.length - 1; i >= 0; i--) {
+        if (nowRows[i][0] >= cutoff) {
+          count++;
+          earliestVsync = nowRows[i][0];
+        } else {
+          break;
+        }
       }
-    }
-
-    double curFps;
-    if (framesInLastSec > 0) {
-      curFps = framesInLastSec.toDouble().clamp(1.0, hz > 0 ? hz : 60.0);
+      final elapsedSec = (latestVsync - earliestVsync) / 1000000.0;
+      if (count >= 2 && elapsedSec > 0.05) {
+        curFps = ((count - 1) / elapsedSec).clamp(1.0, hz > 0 ? hz : 60.0);
+      } else if (recentDurations.isNotEmpty) {
+        final avgMs = recentDurations.reduce((a, b) => a + b) / recentDurations.length;
+        curFps = (1000.0 / max(budgetMs, avgMs)).clamp(1.0, hz > 0 ? hz : 60.0);
+      }
     } else if (recentDurations.isNotEmpty) {
       final avgMs = recentDurations.reduce((a, b) => a + b) / recentDurations.length;
       curFps = (1000.0 / max(budgetMs, avgMs)).clamp(1.0, hz > 0 ? hz : 60.0);
-    } else {
-      curFps = hz > 0 ? hz : 60.0;
     }
 
     final effSorted = List<double>.from(recentDurations)..sort();
@@ -201,6 +219,11 @@ class RunController {
     }
 
     final s = activeScheduler;
+    double ramMb = 0.0;
+    try {
+      ramMb = ProcessInfo.currentRss / (1024.0 * 1024.0);
+    } catch (_) {}
+
     monitor.value = MonitorSnapshot(
       policy: pol,
       scenario: _currentCfg.scenario,
@@ -222,11 +245,19 @@ class RunController {
       doneTasks: doneCount,
       droppedTasks: tasks.where((t) => t.dropped).length + (s?.droppedTasks ?? 0),
       critLatencyMs: critP95,
+      ramMb: ramMb,
     );
   }
 
   /// Chuyển đổi chính sách trực tiếp trên UI không cần restart app
   Future<void> switchPolicy(String newPolicy) async {
+    if (demoRunning.value) {
+      _abortDemo = true;
+    }
+    await _applyPolicy(newPolicy);
+  }
+
+  Future<void> _applyPolicy(String newPolicy) async {
     currentPolicy.value = newPolicy;
     status.value = 'Chuyển sang $newPolicy...';
     await activeScheduler?.dispose();
@@ -234,7 +265,100 @@ class RunController {
     activeScheduler = createScheduler(_currentCfg);
     await activeScheduler!.init();
     status.value = 'Đang chạy ${newPolicy.toUpperCase()}';
+    if (!demoRunning.value && (continuousLoad.value || thermalOverload.value)) {
+      _seedContinuousWave();
+    }
     updateMonitor();
+  }
+
+  void _seedContinuousWave() {
+    if (activeScheduler == null) return;
+    final pol = currentPolicy.value.toLowerCase();
+    if (pol == 'p0') {
+      injectBackgroundTasks(count: 6, costMs: 350);
+    } else if (pol == 'p2') {
+      // Bơm theo đợt đồng bộ 16 tác vụ 1400ms để cả 8 worker đều bận việc dài chưa băm nhỏ
+      injectBackgroundTasks(count: 16, costMs: 1400);
+    } else {
+      injectBackgroundTasks(count: 36, costMs: 1100);
+    }
+  }
+
+  void _tickInteractiveLoad() {
+    if (demoRunning.value || activeScheduler == null) return;
+    final pol = currentPolicy.value.toLowerCase();
+    final pending = activeScheduler!.pending;
+
+    if (thermalOverload.value) {
+      if (!ThermalSim.active) {
+        ThermalSim.start(startC: 39.5);
+        ModeMachine.hysteresisOverrideMs = 1200;
+      }
+      ThermalSim.step(0.1, (activeScheduler?.activeWorkers ?? 0).toDouble());
+      thermalView.value = ThermalSim.tempC;
+      // Bơm bão tải liên tục (giữ trần 450 ở P1..P3 để thấy nghẽn, P4 tự drop ở ngưỡng 80)
+      if (pol == 'p0') {
+        if (pending < 8) injectBackgroundTasks(count: 4, costMs: 350);
+      } else if (pending < 420) {
+        injectBackgroundTasks(count: 12, costMs: 400);
+      }
+      return;
+    }
+
+    if (continuousLoad.value) {
+      if (pol == 'p0') {
+        if (pending < 4) injectBackgroundTasks(count: 4, costMs: 350);
+      } else if (pol == 'p2') {
+        if (pending <= 8) injectBackgroundTasks(count: 8, costMs: 1400);
+      } else {
+        if (pending < 32) injectBackgroundTasks(count: 36 - pending, costMs: 1100);
+      }
+    }
+  }
+
+  /// Bật/tắt chế độ duy trì tải nền liên tục (không lo hết việc khi đang thuyết trình)
+  void toggleContinuousLoad() {
+    if (demoRunning.value) return;
+    continuousLoad.value = !continuousLoad.value;
+    if (continuousLoad.value) {
+      _seedContinuousWave();
+      status.value = 'Đang duy trì tải nền liên tục (${currentPolicy.value.toUpperCase()})';
+    } else if (!thermalOverload.value) {
+      clearQueue();
+    }
+  }
+
+  /// Bật/tắt chế độ Bão tải + Máy nóng liên tục (để so sánh trực tiếp P3 vs P4)
+  void toggleThermalOverload() {
+    if (demoRunning.value) return;
+    thermalOverload.value = !thermalOverload.value;
+    if (thermalOverload.value) {
+      continuousLoad.value = true;
+      ThermalSim.start(startC: 39.5);
+      ModeMachine.hysteresisOverrideMs = 1200;
+      thermalView.value = ThermalSim.tempC;
+      injectBackgroundTasks(count: 120, costMs: 400);
+      status.value = 'Bão tải + Máy nóng (${currentPolicy.value.toUpperCase()})';
+    } else {
+      ThermalSim.stop();
+      ModeMachine.hysteresisOverrideMs = null;
+      thermalView.value = null;
+      status.value = 'Đã tắt mô phỏng nhiệt';
+      updateMonitor();
+    }
+  }
+
+  /// Bật/tắt chế độ ép tải UI để chứng minh phản ứng thích ứng của AIMD
+  void toggleUiStress() {
+    if (demoRunning.value) return;
+    uiStress.value = !uiStress.value;
+    ThermalSim.manualPenaltyMs = uiStress.value ? 40.0 : 0.0;
+    if (uiStress.value) {
+      status.value = '💥 Đang ép giật UI: FPS tụt -> AIMD tự động khóa Worker!';
+    } else {
+      status.value = '✅ Đã giải phóng UI: FPS hồi phục -> Worker tự động mở lại!';
+    }
+    updateMonitor(force: true);
   }
 
   /// Bơm một đợt tác vụ nền xử lý ảnh (mô phỏng quét album)
@@ -266,11 +390,19 @@ class RunController {
   }
 
   /// Xóa danh sách tác vụ / reset trạng thái
-  void clearQueue() {
+  Future<void> clearQueue() async {
+    continuousLoad.value = false;
+    thermalOverload.value = false;
+    uiStress.value = false;
+    ThermalSim.manualPenaltyMs = 0.0;
+    ThermalSim.stop();
+    ModeMachine.hysteresisOverrideMs = null;
+    thermalView.value = null;
     tasks.clear();
     tileStatuses.value = {};
-    updateMonitor();
-    status.value = 'Đã xóa hàng đợi';
+    lastCritMs.value = null;
+    await _applyPolicy(currentPolicy.value);
+    status.value = 'Đã làm sạch hàng đợi';
   }
 
   /// Người dùng chạm vào một ô ảnh trên màn hình (Tác vụ Critical tương tác VIP)
@@ -294,6 +426,7 @@ class RunController {
       onComplete: () {
         final endUs = Timeline.now;
         final latMs = (endUs - submitUs) / 1000.0;
+        lastCritMs.value = latMs;
         tileStatuses.value = {
           ...tileStatuses.value,
           index: TileStatus(
@@ -311,14 +444,23 @@ class RunController {
     updateMonitor();
   }
 
+  void stopDemo() {
+    if (demoRunning.value) {
+      _abortDemo = true;
+    }
+  }
+
   /// Chạy kịch bản demo 60 s (5 pha) với chính sách đang chọn, rồi thêm kết quả vào bảng so sánh.
   Future<void> runDemo() async {
     if (demoRunning.value) return;
+    _abortDemo = false;
+    continuousLoad.value = false;
+    thermalOverload.value = false;
     demoRunning.value = true;
     showScoreboard.value = false;
     final pol = currentPolicy.value;
     _currentCfg = _currentCfg.copyWith(scenario: 'demo', durationS: demoDurationS);
-    await switchPolicy(pol); // scheduler mới, hàng đợi sạch
+    await _applyPolicy(pol); // scheduler mới, hàng đợi sạch
     tasks.clear();
     tileStatuses.value = {};
     lastCritMs.value = null;
@@ -341,6 +483,7 @@ class RunController {
     final startUs = Timeline.now;
     final sw = Stopwatch()..start();
     int lastMs = 0;
+    double peakRamMb = 0.0;
     final ticker = Timer.periodic(const Duration(milliseconds: 100), (_) {
       final ms = sw.elapsedMilliseconds;
       final dt = (ms - lastMs) / 1000.0;
@@ -353,12 +496,18 @@ class RunController {
       // P0 chạy trên main nên coi như 1 lõi bận; các chính sách khác theo số worker đang chạy
       ThermalSim.step(dt, (activeScheduler?.activeWorkers ?? 0).toDouble());
       thermalView.value = ThermalSim.active ? ThermalSim.tempC : null;
+      try {
+        final curMb = ProcessInfo.currentRss / (1024.0 * 1024.0);
+        if (curMb > peakRamMb) peakRamMb = curMb;
+      } catch (_) {}
     });
 
     int id = 1000000;
     for (final sp in specs) {
+      if (_abortDemo) break;
       final wait = sp.atMs - sw.elapsedMilliseconds;
       if (wait > 0) await Future<void>.delayed(Duration(milliseconds: wait));
+      if (_abortDemo) break;
       final t = Task(id: id++, priority: sp.priority, costMs: sp.costMs, chunkable: sp.chunkable)
         ..submitUs = startUs + sp.atMs * 1000;
       if (sp.priority == Priority.critical) {
@@ -367,35 +516,39 @@ class RunController {
       tasks.add(t);
       activeScheduler?.submit(t);
     }
-    final rest = demoDurationS * 1000 - sw.elapsedMilliseconds;
-    if (rest > 0) await Future<void>.delayed(Duration(milliseconds: rest));
+    while (!_abortDemo && sw.elapsedMilliseconds < demoDurationS * 1000) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
     _countFrames = false;
     ticker.cancel();
 
-    // ---- Tổng hợp ----
-    final nowUs = Timeline.now;
-    final hz = PlatformDispatcher.instance.views.first.display.refreshRate;
-    final expected = (hz > 0 ? hz : 60.0) * demoDurationS;
-    final missed = max(0.0, (1 - _demoFrames / expected) * 100);
-    final lats = [
-      for (final t in tasks)
-        if (t.priority == Priority.critical) ((t.done ? t.endUs : nowUs) - t.submitUs) / 1000.0
-    ]..sort();
-    final res = DemoResult(
-      policy: pol,
-      missedPct: missed,
-      critP95Ms: percentile(lats, 0.95),
-      donePct: tasks.isEmpty ? 0 : tasks.where((t) => t.done).length * 100.0 / tasks.length,
-      dropped: tasks.where((t) => t.dropped).length,
-      peakTempC: ThermalSim.peakC,
-      throttledS: ThermalSim.throttledS,
-    );
-    demoResults.value = {...demoResults.value, pol: res};
-    debugPrint('DEMO_RESULT ${jsonEncode(res.toJson())}');
-    try {
-      final dir = await outDir();
-      await File('${dir.path}/demo_$pol.json').writeAsString(jsonEncode(res.toJson()));
-    } catch (_) {}
+    if (!_abortDemo) {
+      // ---- Tổng hợp ----
+      final nowUs = Timeline.now;
+      final hz = PlatformDispatcher.instance.views.first.display.refreshRate;
+      final expected = (hz > 0 ? hz : 60.0) * demoDurationS;
+      final missed = max(0.0, (1 - _demoFrames / expected) * 100);
+      final lats = [
+        for (final t in tasks)
+          if (t.priority == Priority.critical) ((t.done ? t.endUs : nowUs) - t.submitUs) / 1000.0
+      ]..sort();
+      final res = DemoResult(
+        policy: pol,
+        missedPct: missed,
+        critP95Ms: percentile(lats, 0.95),
+        donePct: tasks.isEmpty ? 0 : tasks.where((t) => t.done).length * 100.0 / tasks.length,
+        dropped: tasks.where((t) => t.dropped).length,
+        peakTempC: ThermalSim.peakC,
+        throttledS: ThermalSim.throttledS,
+        peakRamMb: peakRamMb,
+      );
+      demoResults.value = {...demoResults.value, pol: res};
+      debugPrint('DEMO_RESULT ${jsonEncode(res.toJson())}');
+      try {
+        final dir = await outDir();
+        await File('${dir.path}/demo_$pol.json').writeAsString(jsonEncode(res.toJson()));
+      } catch (_) {}
+    }
 
     // ---- Dọn dẹp: hủy việc còn tồn, trả về trạng thái tương tác ----
     ThermalSim.stop();
@@ -404,9 +557,9 @@ class RunController {
     isAutoScrolling.value = false;
     if (scroll.hasClients) scroll.jumpTo(scroll.offset);
     demoCaption.value = null;
-    await switchPolicy(pol);
-    status.value = 'Xong demo ${pol.toUpperCase()}';
-    showScoreboard.value = true;
+    await _applyPolicy(currentPolicy.value);
+    status.value = _abortDemo ? 'Đã dừng demo' : 'Xong demo ${pol.toUpperCase()}';
+    if (!_abortDemo) showScoreboard.value = true;
     demoRunning.value = false;
   }
 
@@ -427,7 +580,10 @@ class RunController {
       imagePaths.value = uiPaths;
     }
 
-    _monitorTicker = Timer.periodic(const Duration(milliseconds: 100), (_) => updateMonitor());
+    _monitorTicker = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      _tickInteractiveLoad();
+      updateMonitor();
+    });
     scroll.addListener(updateMonitor);
 
     if (cfg.scenario == 'demo') {
@@ -522,7 +678,6 @@ class RunController {
       tasks: tasks,
       meta: meta,
     );
-    debugPrint('FILES ${paths.join(' ')}');
     debugPrint('FILES ${paths.join(' ')}');
 
     final text = 'policy=${cfg.policy} scenario=${cfg.scenario} load=${cfg.load} mode=${meta['mode']}\n'

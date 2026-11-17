@@ -198,35 +198,46 @@ P4 (Adaptive AIMD + Degrade Mode Machine + Backpressure)
 
 ---
 
-### BỐ CỤC MÀN HÌNH DEMO TƯƠNG TÁC (3 KHU VỰC TRỰC QUAN):
-1. **Khu vực Trung tâm (Lưới ảnh Photo Grid):** 
+### BỐ CỤC MÀN HÌNH DEMO MỚI NHẤT (4 KHU VỰC TRỰC QUAN):
+1. **Thanh `DemoBanner` & Đường ray `JankTrack` (Trên cùng):**
+   * **Quả bóng kèm 9 chấm đuôi (`JankTrack`):** Khi mượt (60 FPS), 9 chấm đuôi xếp sát nhau như sao chổi; khi bị giật lag (Jank), các chấm đuôi bị đứt quãng xa nhau và bóng nhảy cóc.
+   * **7 Thẻ chỉ số thời gian thực:** `FPS` | `BẤM ẢNH` (độ trễ tác vụ Critical vừa chạm) | `HÀNG ĐỢI` | `BỎ` (Backpressure Drop) | `WORKER` | `RAM` (MB chiếm dụng) | `NHIỆT (SIM)`.
+2. **Bảng HUD `MonitorOverlay` v2 (Ngay dưới Banner — mặc định thu gọn):**
+   * Bấm mũi tên mở rộng để xem biểu đồ Sparkline 40 khung hình, thanh Worker Pool Slots (`⚡`, `🔒`), và 4 thanh trạng thái ở đáy: `⏳ Queue` | `✅ Done` | `🛡️ Drop` | `💾 RAM`.
+3. **Khu vực Trung tâm (Lưới ảnh Photo Grid):** 
    * Mở khóa cho ngón tay vuốt lướt tự do. 
-   * **Mỗi ô ảnh có thể chạm vào được:** Khi bạn chạm vào ô ảnh nào, ô đó sẽ gửi ngay 1 tác vụ khẩn cấp (Critical) để giải mã chất lượng cao và hiển thị thời gian mở ảnh ngay trên góc ô ảnh đó!
-2. **Khu vực Góc trên (Monitor HUD v2):**
-   * Hiển thị thời gian thực FPS, Frame Time, độ trễ mở ảnh `CRIT P95`, thanh CPU Worker slots, trạng thái Mode/Yielding.
-3. **Khu vực Góc dưới (Demo Control Dock):**
-   * **Dải nút chọn nhanh 5 Chính sách:** `[ P0 | P1 | P2 | P3 | P4 ]` (bấm đổi chính sách ngay lập tức, không cần khởi động lại app).
-   * **Nút bấm kích hoạt tải:**
-     * `⚡ Nạp 30 ảnh`: Bơm 30 tác vụ giải mã ảnh nền vào hàng đợi.
-     * `🔥 Bão tải 60`: Bơm 60 tác vụ dồn dập để thử thách độ bền hệ thống.
-     * `🗑️ Xóa`: Dọn sạch hàng đợi.
+   * **Chạm vào bất kỳ ô ảnh nào:** Gửi ngay 1 tác vụ khẩn cấp (`Priority.critical`) giải mã ảnh và hiển thị thời gian mở ảnh ngay trên góc ô ảnh đó lẫn thẻ `BẤM ẢNH` trên Banner!
+4. **Khu vực Góc dưới (`DemoControlDock` & Bảng `DemoScoreboard`):**
+   * **Hàng 1:** 5 nút chọn nhanh chính sách `[ P0 | P1 | P2 | P3 | P4 ]`.
+   * **Hàng 2 (Bộ 3 công tắc giữ tải thông minh):**
+     * `⚡ Tải nền` *(Toggle)*: Bật duy trì hàng đợi tác vụ nền liên tục. Bạn thong thả vừa thuyết trình vừa chạm mở ảnh bất kỳ lúc nào mà không sợ cạn việc!
+     * `💥 Ép giật` *(Toggle)*: Bơm tải giả lập 40ms lên luồng UI $\to$ Ép FPS tụt xuống 20–25 để chứng minh phản ứng thích ứng tự động khóa Worker của $P_4$.
+     * `🔥 Bão nhiệt` *(Toggle)*: Bơm bão tải dồn dập kèm mô hình tăng nhiệt độ lên $\ge 40.8^\circ\text{C}$ để kích hoạt chế độ `CRITICAL` tự vệ phần cứng của $P_4$.
+     * `🗑️`: Tắt toàn bộ tải và làm sạch hàng đợi.
+   * **Hàng 3 (Kịch bản tự động 60s & Đối chiếu kết quả):**
+     * `▶ CHẠY DEMO 60s`: Tự động chạy 5 pha thử thách chuẩn hóa và ghi nhận kết quả.
+     * `📊 So sánh`: Bật bảng đối chiếu 8 cột khoa học giữa các chính sách ($P_0 \to P_4$).
 
 ---
 
-### KỊCH BẢN 5 MÀN TRÌNH DIỄN (THAO TÁC TẬN TAY — MẮT THẤY TAI NGHE):
+## PHẦN 3: KỊCH BẢN THỰC NGHIỆM TRỰC TIẾP (2 PHẦN RÕ RÀNG)
 
-#### MÀN 1: DEMO CHÍNH SÁCH $P_0$ (Chưa tối ưu — Đơn luồng Main Isolate)
-* **Ý nghĩa khoa học:** Cho thấy tác hại của việc xử lý ảnh nặng ngay trên Main Isolate làm phong tỏa Vòng lặp sự kiện (Event Loop).
+---
+
+### PHẦN A: THAO TÁC NHANH BẰNG TAY (2 PHÚT — MẮT THẤY TAI NGHE)
+
+#### MÀN 1: DEMO $P_0$ (Đơn luồng Main Isolate — Thảm họa giao diện)
+* **Ý nghĩa:** Chứng minh việc xử lý ảnh nặng ngay trên luồng chính làm đóng băng hoàn toàn Vòng lặp sự kiện (Event Loop).
 * **Thao tác:**
-  1. Bấm nút **`P0`** ở thanh điều khiển dưới màn hình.
-  2. Bấm nút **`⚡ Nạp 30 ảnh`**.
+  1. Chọn **`P0`**.
+  2. Bấm bật nút **`⚡ Tải nền`**.
   3. Lấy ngón tay vuốt lướt màn hình và chạm thử vào 1 ô ảnh.
 * **Hiện tượng mắt thấy tai nghe:**
-  * **Con quay Spinner ở góc trên CHẾT CỨNG ĐỨNG YÊN** rõ ràng từng nhịp 0.3s – 0.5s!
-  * Thao tác vuốt ngón tay bị tê liệt, chạm vào ô ảnh **không có phản hồi** vì Main Isolate đang bị nghẽn decode.
-  * Toàn bộ cột Frame Time trên HUD biến thành **màu ĐỎ rực** vọt lên $>200\text{ ms}$, FPS tụt thảm hại còn **`4 – 8 FPS`**, Miss **`>80%`**.
-* **Lời nói với Thầy Cô:**
-  > *"Kính thưa Thầy Cô, ở P0 khi không dùng đa luồng, mỗi bức ảnh nền chiếm trọn Main Isolate 300ms khiến con quay và thao tác chạm của người dùng bị đóng băng hoàn toàn."*
+  * **Quả bóng `JankTrack` CHẾT CỨNG ĐỨNG YÊN**, đứt quãng từng nhịp 0.3s – 0.5s!
+  * Thao tác vuốt bị tê liệt hoàn toàn, chạm vào ô ảnh không ăn vì Main Isolate đang bị nghẽn decode ảnh.
+  * Thẻ `FPS` tụt thảm hại còn **`4 – 8 FPS`** (đỏ rực).
+* **Lời nói với Hội đồng:**
+  > *"Kính thưa Thầy Cô, ở P0 khi chưa dùng đa luồng, mỗi bức ảnh nền chiếm trọn Main Isolate 350ms khiến giao diện và thao tác cảm ứng của người dùng bị đóng băng hoàn toàn."*
 
 ---
 
@@ -234,69 +245,84 @@ P4 (Adaptive AIMD + Degrade Mode Machine + Backpressure)
 * **Ý nghĩa khoa học:** Đưa việc ra luồng phụ đã cứu được giao diện, nhưng bộc lộ nhược điểm **Nghẽn đầu hàng (Head-of-Line Blocking)**.
 * **Thao tác:**
   1. Bấm nút **`P1`**.
-  2. Bấm nút **`⚡ Nạp 30 ảnh`** (Hàng đợi `Queue` trên HUD nhảy lên 30).
-  3. **Lấy ngón tay chạm ngay vào ô ảnh `#12`**.
+  2. Bấm bật công tắc **`⚡ Tải nền`** (Hàng đợi `HÀNG ĐỢI` trên HUD duy trì nạp ảnh nền liên tục).
+  3. **Lấy ngón tay chạm ngay vào 1 ô ảnh bất kỳ trên lưới**.
 * **Hiện tượng mắt thấy tai nghe:**
-  * Con quay Spinner đã quay được mượt mà (chứng minh tính toán đã ra khỏi luồng chính).
-  * **NHƯNG:** Ô ảnh `#12` hiện vòng xoay nhỏ quay chờ... và bạn phải **đợi mòn mỏi 5 – 8 giây sau ảnh mới mở được!**
-  * Khi mở xong, ô ảnh hiện nhãn màu ĐỎ: **`⏳ 6.2s`** (và chỉ số `CRIT P95` trên HUD báo đỏ hàng nghìn ms).
-* **Lời nói với Thầy Cô:**
-  > *"Thưa Thầy Cô, ở P1 giao diện đã hết đơ, nhưng do dùng hàng đợi FIFO nên yêu cầu mở ảnh của người dùng bị xếp sau 30 bức ảnh nền, khiến người dùng phải chờ tới hơn 6 giây mới xem được ảnh!"*
+  * Quả bóng `JankTrack` đã lăn được mượt mà (chứng minh việc nặng đã ra khỏi luồng chính, Main Isolate không còn bị đóng băng).
+  * **NHƯNG:** Ô ảnh vừa chạm hiện vòng xoay nhỏ và bạn phải **đợi mòn mỏi 4 – 8 giây sau ảnh mới mở được!**
+  * Khi mở xong, ô ảnh hiện nhãn màu ĐỎ: **`⏳ 5.8s`** và thẻ **`BẤM ẢNH`** trên Banner báo đỏ hàng nghìn ms.
+* **Lời nói với Hội đồng:**
+  > *"Thưa Thầy Cô, ở P1 giao diện đã hết đơ, nhưng do dùng hàng đợi FIFO truyền thống nên yêu cầu mở ảnh của người dùng bị xếp sau hàng chục bức ảnh nền, khiến người dùng phải chờ tới hơn 5 giây mới xem được ảnh!"*
 
 ---
 
 #### MÀN 3: DEMO CHÍNH SÁCH $P_2$ (Hàng đợi Ưu tiên Priority Queue + Aging)
-* **Ý nghĩa khoa học:** Khắc phục nghẽn đầu hàng của P1, nhưng vấp phải rào cản **Dart Isolate không thể bị ngắt ngang**.
+* **Ý nghĩa khoa học:** Khắc phục nghẽn đầu hàng của P1, nhưng vấp phải rào cản **Dart Isolate không thể bị ngắt ngang (Non-preemptive)**.
 * **Thao tác:**
-  1. Bấm nút **`P2`**.
-  2. Bấm nút **`⚡ Nạp 30 ảnh`**.
-  3. **Lấy ngón tay chạm vào ô ảnh `#15`**.
+  1. Bấm nút **`P2`** (vẫn duy trì bật **`⚡ Tải nền`**).
+  2. **Lấy ngón tay chạm vào 1 ô ảnh khác**.
 * **Hiện tượng mắt thấy tai nghe:**
-  * Nhanh hơn P1 rất nhiều (không còn phải chờ 6 giây), nhưng **vẫn bị khựng sượng khoảng nửa giây (300 – 600ms)** mới mở được.
-  * Ô ảnh hiện nhãn màu VÀNG: **`⏳ 450ms`**.
-* **Lời nói với Thầy Cô:**
-  > *"Ở P2, tác vụ mở ảnh đã được ưu tiên nhảy lên đầu hàng. Tuy nhiên, vì Dart Isolate không hỗ trợ ngắt cưỡng bức, cú chạm của em vẫn phải chờ 1 trong 4 worker làm xong hẳn bức ảnh nền 500ms dở dang thì mới được phục vụ."*
+  * Nhanh hơn P1 rất nhiều (không còn phải chờ 5 giây), nhưng **vẫn bị khựng sượng khoảng nửa giây (300 – 600ms)** mới mở được.
+  * Ô ảnh hiện nhãn màu VÀNG: **`⏳ 420ms`** (thẻ `BẤM ẢNH` cũng báo mức vài trăm ms).
+* **Lời nói với Hội đồng:**
+  > *"Ở P2, tác vụ mở ảnh đã được ưu tiên nhảy lên đầu hàng đợi. Tuy nhiên, vì Dart Isolate không hỗ trợ ngắt cưỡng bức, cú chạm của em vẫn phải chờ 1 trong các worker làm xong hẳn bức ảnh nền dở dang thì mới được phục vụ."*
 
 ---
 
 #### MÀN 4: DEMO CHÍNH SÁCH $P_3$ (Cooperative Chunking 80ms + Worker Reserve)
 * **Ý nghĩa khoa học:** Bẻ gãy rào cản không thể ngắt bằng cách băm nhỏ việc 80ms và luôn dành 1 worker dự phòng cho tương tác người dùng.
 * **Thao tác:**
-  1. Bấm nút **`P3`**.
-  2. Bấm nút **`⚡ Nạp 30 ảnh`**.
-  3. **Lấy ngón tay chạm vào ô ảnh `#20`**.
+  1. Bấm nút **`P3`** (vẫn duy trì bật **`⚡ Tải nền`**).
+  2. **Lấy ngón tay chạm vào 1 ô ảnh tiếp theo**.
 * **Hiện tượng mắt thấy tai nghe:**
   * **CHẠM PHÁT MỞ NGAY TỨC THÌ (<80ms)!**
-  * Ô ảnh nhấp nháy sáng viền xanh và hiện nhãn xanh lá: **`⚡ 42ms`**!
-  * Chỉ số `CRIT P95` trên HUD xẹp xuống xanh mướt **`< 80ms`**, biểu đồ Frame Time nằm phẳng dưới vạch $16.7\text{ ms}$, đạt chuẩn **60 FPS** tròn trĩnh.
-* **Lời nói với Thầy Cô:**
+  * Ô ảnh nhấp nháy sáng viền xanh và hiện nhãn xanh lá: **`⚡ 38ms`**!
+  * Thẻ **`BẤM ẢNH`** trên Banner xẹp xuống xanh mướt **`< 50ms`**, quả bóng `JankTrack` lăn hoàn hảo 60 FPS.
+* **Lời nói với Hội đồng:**
   > *"Nhờ băm nhỏ việc nền thành các lát cắt 80ms tạo điểm chen ngang và luôn dự phòng sẵn 1 worker rảnh rỗi, cú chạm mở ảnh của người dùng đạt phản hồi tức thì dưới 50ms, đáp ứng hoàn hảo tiêu chuẩn tương tác thời gian thực!"*
 
 ---
 
 #### MÀN 5: THỬ THÁCH BÃO TẢI $P_3$ VS $P_4$ (Cấu hình tĩnh vs Thích ứng tự động AIMD)
 * **Ý nghĩa khoa học:** Chứng minh điểm yếu của cấu hình tĩnh $P_3$ khi quá tải, và sự vượt trội của hệ thống tự lái $P_4$.
-* **Thao tác 1 (Thử thách trên $P_3$):**
-  1. Đang ở **`P3`**, bấm nút **`🔥 Bão tải 60`**.
+* **Thao tác 1 (Thử thách trên $P_3$ - Cấu hình tĩnh bó tay):**
+  1. Đang ở **`P3`**, bấm bật thêm nút **`💥 Ép giật`** (hoặc **`🔥 Bão nhiệt`**).
   2. Lấy ngón tay **vuốt cuộn lưới ảnh thật nhanh lên xuống liên tục**.
-  3. **Hiện tượng:** Thao tác vuốt bị **sượng tay, giật cục**, FPS tụt xuống **`35 – 45 FPS`**, cột Frame Time trên HUD đổi sang màu Vàng/Đỏ (do 4 worker nền chạy 100% CPU làm nghẽn luồng vẽ UI).
+  3. **Hiện tượng:** Thao tác vuốt bị **sượng tay, giật cục rõ rệt**, bóng `JankTrack` đứt quãng, FPS tụt xuống mức đỏ **`20 – 28 FPS`** (do P3 vẫn cố chấp duy trì đủ worker làm cạn kiệt tài nguyên xử lý của máy).
 * **Thao tác 2 (Xem $P_4$ tự động cứu hệ thống):**
-  1. Bấm chuyển sang **`P4`**, bấm nút **`🔥 Bão tải 60`**.
-  2. Lấy ngón tay **vuốt cuộn lưới ảnh thật nhanh lên xuống liên tục**.
+  1. Bấm chuyển sang **`P4`** (vẫn đang bật `⚡ Tải nền` + `💥 Ép giật`).
+  2. Lấy ngón tay **vuốt cuộn lưới ảnh lên xuống**.
   3. **Hiện tượng mắt thấy kinh ngạc:**
-     * Mắt nhìn vào thanh Worker Pool trên HUD: Ngay khi ngón tay bạn đang cuộn, AIMD lập tức phanh gấp, **khóa bớt 3 worker lại `1/1 (AIMD khóa 3) 🔒`**!
-     * Thao tác vuốt cuộn của bạn **MƯỢT NHƯ LỤA CHUẨN 60 FPS** (cột Frame Time xanh mướt)!
-     * Khi bạn **buông tay ra không vuốt nữa** (UI rảnh) $\to$ Số worker trên màn hình tự động nhảy tăng trở lại: **1 $\to$ 2 $\to$ 4** để giải quyết nốt việc nền!
-     * Ô **`🛡️ Drop`** tự động nhảy số (Backpressure xả bớt việc nền cũ ở xa, chống tràn RAM).
+     * Mắt nhìn vào thẻ **`WORKER`** trên Banner: Ngay khi phát hiện UI có nguy cơ trễ khung hình, thuật toán AIMD lập tức phanh gấp, **giảm mạnh số worker xuống 1 – 2 worker** để nhường trọn CPU cho Main Isolate!
+     * Thao tác vuốt cuộn lập tức **mượt mà trở lại, bóng `JankTrack` nối liền đuôi**.
+     * Khi bấm tắt **`💥 Ép giật`** (UI rảnh rỗi, frame time $\le 28\text{ ms}$) $\to$ Thẻ **`WORKER`** tự động nở dần lên: **`2 ➔ 3 ➔ 5 ➔ 7 worker`** để dọn sạch hàng đợi nền!
+     * Khi bấm **`🔥 Bão nhiệt`** $\to$ Thẻ **`NHIỆT (SIM)`** vọt lên $\ge 40.8^\circ\text{C}$ $\to$ Hệ thống chuyển sang chế độ bảo vệ phần cứng `Critical`, khóa cứng trần worker về 1 và thẻ **`BỎ`** (Drop) tự động nhảy số để xả tải bảo vệ bộ nhớ RAM.
 * **Lời nói kết thúc đắt giá trước Hội đồng:**
   > *"Kính thưa Thầy Cô, qua màn thử thách bão tải vừa rồi, sự khác biệt giữa P3 và P4 hiện lên rõ rệt nhất:
-  > - Ở P3 cấu hình tĩnh, máy bị giật lag và tụt khung hình khi người dùng vuốt nhanh trong lúc tải nặng.
-  > - Nhưng ở P4, hệ thống như **'biết thở' theo ngón tay của người dùng**: vuốt tay thì worker tự động co lại để giữ mượt 60 FPS; buông tay thì worker tự động bung xõa để hoàn thành việc nền. Đây chính là giá trị cốt lõi của bộ điều khiển thích ứng AIMD!"*
+  > - Ở P3 cấu hình tĩnh, máy bị giật lag và tụt khung hình khi chịu tải nặng hoặc thiết bị nóng lên.
+  > - Nhưng ở P4, hệ thống như **'biết thở' theo ngón tay người dùng**: khi thao tác nặng thì worker tự động co cụm về 1-2 luồng để giữ mượt giao diện; khi rảnh tay thì worker tự động bung rộng đến tối đa 7 luồng để xử lý việc nền nhanh nhất. Đồng thời cơ chế xả tải Backpressure tự động loại bỏ việc dư thừa để app không bao giờ bị tràn RAM sập ứng dụng!"*
+
+---
+
+### PHẦN B: KỊCH BẢN CHẠY DEMO TỰ ĐỘNG 60S & BẢNG ĐỐI CHIẾU KHOA HỌC
+
+Nếu Hội đồng muốn xem một chu trình kiểm thử khách quan, chuẩn hóa từ đầu đến cuối:
+1. Bấm nút **`▶ CHẠY DEMO 60s`** ở góc dưới:
+   * Hệ thống tự động kích hoạt một chu trình 5 pha mô phỏng vòng đời sử dụng thực tế (Khởi động $\to$ Nghỉ $\to$ Chạm mở ảnh $\to$ Bão tải nền $\to$ Ép nghẽn phục hồi).
+   * Trên thanh Banner, đồng hồ đếm ngược và các chỉ số đo lường liên tục nhảy số theo thời gian thực.
+2. Sau khi chạy xong, bấm nút **`📊 So sánh`**:
+   * Hộp thoại **Scoreboard đối chiếu 8 cột khoa học** hiện lên, tổng kết chi tiết từng chỉ số giữa các chính sách:
+     * **FPS trung bình & Độ mượt** ($P_0: \sim 8\text{ FPS} \to P_4: 58-60\text{ FPS}$)
+     * **Độ trễ mở ảnh khẩn cấp `Crit p95`** ($P_1: >5000\text{ ms} \to P_4: <50\text{ ms}$)
+     * **Tỷ lệ rớt khung hình (Jank Rate %)**
+     * **Số tác vụ hoàn thành (Throughput) & Số tác vụ xả tải an toàn (Drop count)**
+     * **Mức chiếm dụng RAM tối đa**.
+   * Đây là bằng chứng định lượng thuyết phục nhất minh chứng cho hiệu quả tối ưu của đề tài.
 
 ---
 
 ## TỔNG KẾT BÀI NÓI (KẾT LUẬN 1 PHÚT)
-> *"Kính thưa Thầy Cô và Hội đồng, qua 4 màn demo thực nghiệm vừa rồi, chúng em đã chứng minh rõ: 
-> 1. Để ứng dụng mượt mà, việc chỉ đẩy tác vụ ra Isolate chạy nền ($P_1$) là chưa đủ.
-> 2. Chìa khóa để đạt Zero-Jank và độ trễ phản hồi dưới 100ms nằm ở sự phối hợp giữa **Phân mảnh hợp tác 80ms (Cooperative Chunking)** và **Dự phòng luồng khẩn cấp ($P_3$)**.
-> 3. Cuối cùng, với **Bộ điều khiển thích ứng AIMD và Xả tải Backpressure ($P_4$)**, ứng dụng có khả năng tự bảo vệ và hoạt động bền bỉ ngay cả trong điều kiện quá tải khắc nghiệt nhất."*
+> *"Kính thưa Thầy Cô và Hội đồng, qua các màn demo thực nghiệm vừa rồi, đề tài của em đã giải quyết trọn vẹn bài toán tối ưu đa luồng cho ứng dụng di động:
+> 1. Để ứng dụng mượt, việc chỉ đẩy tác vụ ra luồng phụ ($P_1$) là chưa đủ vì sẽ gây nghẽn đầu hàng.
+> 2. Chìa khóa để đạt Zero-Jank và độ trễ phản hồi tức thì dưới 100ms nằm ở sự phối hợp giữa **Phân mảnh hợp tác 80ms (Cooperative Chunking)** và **Dự phòng luồng khẩn cấp ($P_3$)**.
+> 3. Cuối cùng, với **Bộ điều khiển thích ứng AIMD và Cơ chế phòng vệ đa tầng ($P_4$)**, hệ thống đạt khả năng tự thích ứng: tự động co giãn số luồng theo độ mượt giao diện và tự bảo vệ thiết bị trước nguy cơ quá nhiệt và tràn RAM."*

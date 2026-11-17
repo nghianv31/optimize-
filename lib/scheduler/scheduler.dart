@@ -206,8 +206,9 @@ class PoolScheduler extends Scheduler {
       _tick = Timer.periodic(const Duration(milliseconds: 100), (_) {
         final g = _frames.gapP95Ms();
         final was = _busy;
-        if (!_busy && g > cfg.yieldMs) _busy = true;
-        if (_busy && g < cfg.yieldMs * 0.8) _busy = false;
+        final yieldThresh = max(35.0, cfg.yieldMs.toDouble());
+        if (!_busy && g > yieldThresh) _busy = true;
+        if (_busy && g < yieldThresh * 0.8) _busy = false;
         if (was != _busy) busyToggles++;
         _dispatch();
       });
@@ -286,9 +287,9 @@ class P4Scheduler extends Scheduler {
         _queue = TaskQueue(usePriority: true),
         aimd = AimdController(
           minWorkers: 1,
-          maxWorkers: cfg.workers,
-          targetGapMs: cfg.yieldMs.toDouble(),
-          initialWorkers: min(2.0, cfg.workers.toDouble()),
+          maxWorkers: max(1, cfg.workers - 1),
+          targetGapMs: max(35.0, cfg.yieldMs.toDouble()),
+          initialWorkers: max(1.0, (cfg.workers - 1).toDouble()),
         ),
         modeMachine = ModeMachine(hysteresisMs: 5000),
         signalSource = cfg.scenario == 's4' ? ScriptedSignalSource() : SimAwareSignalSource(DeviceSignalSource());
@@ -361,9 +362,10 @@ class P4Scheduler extends Scheduler {
       final nowUs = Timeline.now;
       final g = _frames.gapP95Ms();
 
-      // Nhận diện UI bận với hysteresis chống rung
-      if (!_busy && g > cfg.yieldMs) _busy = true;
-      if (_busy && g < cfg.yieldMs * 0.8) _busy = false;
+      // Nhận diện UI bận với hysteresis chống rung (chỉ hoãn khi thật sự lag > 35ms, hồi phục khi < 28ms)
+      final yieldThresh = max(35.0, cfg.yieldMs.toDouble());
+      if (!_busy && g > yieldThresh) _busy = true;
+      if (_busy && g < yieldThresh * 0.8) _busy = false;
 
       // D1: Cập nhật AIMD theo khoảng cách frame (epoch pacing 500ms)
       if (useAimd) {
@@ -432,20 +434,15 @@ class P4Scheduler extends Scheduler {
         // Tác vụ thông thường (non-critical) bị giới hạn bởi:
         // 1. Worker cap của AIMD / DegradeMode
         // 2. Không được chiếm worker cuối cùng (luôn chừa ít nhất 1 worker trong pool cho Critical khi pool > 1)
-        final nonCriticalLimit = min(cap, max(1, cfg.workers - 1));
+        int nonCriticalLimit = min(cap, max(1, cfg.workers - 1));
+
+        // Nhường frame thông minh: Khi UI bận vuốt lướt, ghìm bớt trần worker xuống
+        // để nhường CPU cho thao tác vuốt, TUYỆT ĐỐI KHÔNG KHÓA TOÀN BỘ VỀ 0!
+        if (_busy && t.priority == Priority.background) {
+          nonCriticalLimit = max(1, (nonCriticalLimit * 0.5).round());
+        }
+
         if (_runningNonCritical >= nonCriticalLimit) return false;
-
-        // Nhường frame: Tạm hoãn tác vụ background khi UI đang bận
-        if (_busy && t.priority == Priority.background && now - t.submitUs < cfg.deferCapMs * 1000) {
-          return false;
-        }
-
-        // Ở chế độ Conserve: kéo dài thời gian hoãn của tác vụ background
-        if (useModes && currentMode == DegradeMode.conserve && t.priority == Priority.background) {
-          if (now - t.submitUs < cfg.deferCapMs * 2000) {
-            return false;
-          }
-        }
 
         return true;
       };

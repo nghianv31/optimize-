@@ -10,9 +10,9 @@ import 'mode_machine.dart';
 /// được nhiệt độ này để tự giảm tải.
 class ThermalSim {
   static const ambient = 30.0;
-  static const conserveAt = 40.0;
+  static const conserveAt = 39.5;
+  static const criticalAt = 40.8;
   static const throttleAt = 42.0;
-  static const criticalAt = 43.5;
   static const heatPerWorkerPerS = 0.10; // °C/s cho mỗi worker bận
   static const coolPerDegPerS = 0.02; // tỏa nhiệt tỉ lệ với (T - môi trường)
 
@@ -41,10 +41,13 @@ class ThermalSim {
     if (throttling) throttledS += dtS;
   }
 
+  static double manualPenaltyMs = 0.0;
+
   static bool get throttling => active && tempC >= throttleAt;
 
-  /// Thời gian phạt thêm cho mỗi frame UI khi đang hạ xung (ms).
-  static double get penaltyMs => throttling ? 10 + 15 * ((tempC - throttleAt) / 2).clamp(0.0, 1.0) : 0;
+  /// Thời gian phạt thêm cho mỗi frame UI khi đang hạ xung hoặc khi ép giật UI (ms).
+  static double get penaltyMs =>
+      (throttling ? 10 + 15 * ((tempC - throttleAt) / 2).clamp(0.0, 1.0) : 0) + manualPenaltyMs;
 
   static DegradeMode get mode => tempC >= criticalAt
       ? DegradeMode.critical

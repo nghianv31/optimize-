@@ -98,6 +98,8 @@ class DemoBanner extends StatelessWidget {
                       _chip('BỎ', snap == null ? '--' : '${snap.droppedTasks}',
                           (snap?.droppedTasks ?? 0) > 0 ? const Color(0xFFFBBF24) : Colors.white54),
                       _chip('WORKER', snap == null ? '--' : '${snap.activeWorkers}/${snap.maxWorkers}', const Color(0xFF38BDF8)),
+                      _chip('RAM', snap == null || snap.ramMb <= 0 ? '--' : '${snap.ramMb.toStringAsFixed(0)}M',
+                          snap == null ? Colors.white54 : _good(snap.ramMb < 250, snap.ramMb < 400)),
                       if (temp != null)
                         _chip('NHIỆT (SIM)', '${temp.toStringAsFixed(1)}°',
                             _good(temp < ThermalSim.conserveAt, temp < ThermalSim.throttleAt)),
@@ -117,8 +119,8 @@ class DemoBanner extends StatelessWidget {
   Widget _chip(String label, String value, Color color) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.only(right: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+        margin: const EdgeInsets.only(right: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
         decoration: BoxDecoration(
           color: const Color(0x881E293B),
           borderRadius: BorderRadius.circular(6),
@@ -245,7 +247,7 @@ class DemoScoreboard extends StatelessWidget {
                       const Text('SO SÁNH CÁC CHÍNH SÁCH (cùng kịch bản 60 s)',
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
                       const SizedBox(height: 6),
-                      _row(['Chính sách', 'Rớt\nframe', 'Bấm ảnh\np95', 'Xong', 'Bỏ', 'Nhiệt\nmax', 'Hạ xung'], header: true),
+                      _row(['Chính sách', 'Rớt\nframe', 'Bấm ảnh\np95', 'Xong', 'Bỏ', 'RAM\nmax', 'Nhiệt\nmax', 'Hạ xung'], header: true),
                       if (rows.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(12),
@@ -259,6 +261,7 @@ class DemoScoreboard extends StatelessWidget {
                           r.critP95Ms >= 1000 ? '${(r.critP95Ms / 1000).toStringAsFixed(1)}s' : '${r.critP95Ms.toStringAsFixed(0)}ms',
                           '${r.donePct.toStringAsFixed(0)}%',
                           '${r.dropped}',
+                          r.peakRamMb > 0 ? '${r.peakRamMb.toStringAsFixed(0)}M' : '-',
                           r.peakTempC > 0 ? '${r.peakTempC.toStringAsFixed(1)}°' : '-',
                           '${r.throttledS.toStringAsFixed(0)}s',
                         ], colors: [
@@ -267,6 +270,7 @@ class DemoScoreboard extends StatelessWidget {
                           _good(r.critP95Ms <= 100, r.critP95Ms <= 1000),
                           Colors.white,
                           r.dropped > 0 ? const Color(0xFFFBBF24) : Colors.white70,
+                          _good(r.peakRamMb < 250, r.peakRamMb < 400),
                           _good(r.peakTempC < ThermalSim.throttleAt, false),
                           _good(r.throttledS == 0, r.throttledS < 4),
                         ]),
@@ -303,15 +307,19 @@ class DemoScoreboard extends StatelessWidget {
         children: [
           for (int i = 0; i < cells.length; i++)
             Expanded(
-              flex: i == 0 ? 2 : 3,
-              child: Text(
-                cells[i],
-                textAlign: i == 0 ? TextAlign.left : TextAlign.center,
-                style: TextStyle(
-                  color: header ? Colors.white54 : (colors?[i] ?? Colors.white),
-                  fontSize: header ? 9 : 12.5,
-                  fontWeight: header ? FontWeight.w700 : FontWeight.w900,
-                  fontFamily: header ? null : 'monospace',
+              flex: i == 0 ? 3 : 2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: i == 0 ? Alignment.centerLeft : Alignment.center,
+                child: Text(
+                  cells[i],
+                  textAlign: i == 0 ? TextAlign.left : TextAlign.center,
+                  style: TextStyle(
+                    color: header ? Colors.white54 : (colors?[i] ?? Colors.white),
+                    fontSize: header ? 8.5 : 12,
+                    fontWeight: header ? FontWeight.w700 : FontWeight.w900,
+                    fontFamily: header ? null : 'monospace',
+                  ),
                 ),
               ),
             ),

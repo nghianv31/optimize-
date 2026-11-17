@@ -70,49 +70,100 @@ class DemoControlDock extends StatelessWidget {
 
               const SizedBox(height: 7),
 
-              // Hàng 2: Các nút hành động kích hoạt tải
+              // Hàng 2: Công tắc Tải nền, Ép giật UI và Bão nhiệt
               Row(
                 children: [
                   Expanded(
-                    flex: 4,
-                    child: ElevatedButton.icon(
-                      onPressed: () => controller.injectBackgroundTasks(count: 30, costMs: 300),
-                      icon: const Icon(Icons.bolt_rounded, size: 15, color: Colors.amberAccent),
-                      label: const Text('Nạp 30 ảnh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: const BorderSide(color: Color(0xFF334155)),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: controller.continuousLoad,
+                      builder: (_, on, _) => ElevatedButton(
+                        onPressed: controller.toggleContinuousLoad,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: on ? const Color(0xFF0284C7) : const Color(0xFF1E293B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: on ? Colors.cyanAccent : const Color(0xFF334155), width: on ? 1.4 : 1.0),
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(on ? Icons.sync_rounded : Icons.bolt_rounded, size: 14, color: on ? Colors.white : Colors.amberAccent),
+                              const SizedBox(width: 3),
+                              Text(on ? 'Tải: BẬT' : '⚡ Tải nền', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 4),
                   Expanded(
-                    flex: 4,
-                    child: ElevatedButton.icon(
-                      onPressed: () => controller.injectBurstTasks(count: 60, costMs: 400),
-                      icon: const Icon(Icons.local_fire_department_rounded, size: 15, color: Colors.deepOrangeAccent),
-                      label: const Text('Bão tải 60', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: const BorderSide(color: Color(0xFF475569)),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: controller.uiStress,
+                      builder: (_, lag, _) => ElevatedButton(
+                        onPressed: controller.toggleUiStress,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: lag ? const Color(0xFF9333EA) : const Color(0xFF1E293B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: lag ? Colors.purpleAccent : const Color(0xFF334155), width: lag ? 1.4 : 1.0),
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.speed_rounded, size: 14, color: lag ? Colors.white : Colors.purpleAccent),
+                              const SizedBox(width: 3),
+                              Text(lag ? 'Giật: BẬT' : '💥 Ép giật', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: controller.thermalOverload,
+                      builder: (_, hot, _) => ElevatedButton(
+                        onPressed: controller.toggleThermalOverload,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: hot ? const Color(0xFFDC2626) : const Color(0xFF1E293B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: hot ? Colors.orangeAccent : const Color(0xFF475569), width: hot ? 1.4 : 1.0),
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.local_fire_department_rounded, size: 14, color: hot ? Colors.white : Colors.deepOrangeAccent),
+                              const SizedBox(width: 3),
+                              Text(hot ? 'Nhiệt: BẬT' : '🔥 Bão nhiệt', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   IconButton(
                     onPressed: () => controller.clearQueue(),
                     icon: const Icon(Icons.cleaning_services_rounded, size: 16, color: Colors.white70),
-                    tooltip: 'Xóa hàng đợi',
+                    tooltip: 'Dừng tải & Xóa hàng đợi',
                     style: IconButton.styleFrom(
                       backgroundColor: const Color(0xFF1E293B),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -132,12 +183,12 @@ class DemoControlDock extends StatelessWidget {
                     child: ValueListenableBuilder<bool>(
                       valueListenable: controller.demoRunning,
                       builder: (_, running, _) => FilledButton.icon(
-                        onPressed: running ? null : controller.runDemo,
-                        icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                        label: Text(running ? 'Đang chạy demo...' : 'CHẠY DEMO 60s',
+                        onPressed: running ? controller.stopDemo : controller.runDemo,
+                        icon: Icon(running ? Icons.stop_rounded : Icons.play_arrow_rounded, size: 18),
+                        label: Text(running ? 'DỪNG DEMO' : 'CHẠY DEMO 60s',
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
+                          backgroundColor: running ? const Color(0xFFEF4444) : const Color(0xFF10B981),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                       ),

@@ -23,13 +23,17 @@ class FrameSignal {
         _last = now;
       });
 
-  /// p95 khoảng cách giữa 2 frame gần nhất (ms), tính cả frame đang bị treo.
+  /// p95 khoảng cách giữa các frame gần nhất (ms).
   double gapP95Ms() {
-    if (_gaps.isEmpty) return 0;
+    if (_gaps.isEmpty) return 16.6;
     final s = [..._gaps]..sort();
-    final p95 = percentile(s, 0.95) / 1000;
-    final stall = (_sw.elapsedMicroseconds - _last) / 1000;
-    return p95 > stall ? p95 : stall;
+    final p95 = percentile(s, 0.95) / 1000.0;
+    // Chỉ tính stall nếu luồng UI bị treo cứng thật sự (> 150ms mà chưa vẽ xong)
+    final elapsedSinceLast = (_sw.elapsedMicroseconds - _last) / 1000.0;
+    if (elapsedSinceLast > 150.0) {
+      return elapsedSinceLast;
+    }
+    return p95;
   }
 }
 

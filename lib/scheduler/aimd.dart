@@ -36,11 +36,11 @@ class AimdController {
     }
     _lastUpdateUs = now;
 
-    if (gapP95Ms > targetGapMs) {
-      // Giảm nhân để nhanh chóng hạ tải CPU, cứu UI
+    if (gapP95Ms > max(36.0, targetGapMs)) {
+      // Giảm nhân để nhanh chóng hạ tải CPU khi UI bị giật lag rõ rệt (< 28 FPS)
       _workers = max(minWorkers.toDouble(), _workers * 0.5);
-    } else if (gapP95Ms <= targetGapMs * 0.8) {
-      // Tăng cộng đều đặn từng worker khi UI mượt
+    } else if (gapP95Ms <= max(28.0, targetGapMs * 0.8)) {
+      // Tăng cộng đều đặn từng worker khi UI ở mức ổn định (>= 35-60 FPS)
       _workers = min(maxWorkers.toDouble(), _workers + 1.0);
     }
     final c = workerCount;

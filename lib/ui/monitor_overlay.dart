@@ -22,6 +22,7 @@ class MonitorSnapshot {
   final int doneTasks;
   final int droppedTasks;
   final double critLatencyMs;
+  final double ramMb;
 
   const MonitorSnapshot({
     required this.policy,
@@ -44,6 +45,7 @@ class MonitorSnapshot {
     required this.doneTasks,
     required this.droppedTasks,
     required this.critLatencyMs,
+    this.ramMb = 0.0,
   });
 }
 
@@ -73,24 +75,18 @@ class _MonitorOverlayState extends State<MonitorOverlay> {
           top: 140,
           left: 8,
           right: 8,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xF20B1120), Color(0xEC111827)],
+          child: RepaintBoundary(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xF20B1120),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.75), width: 1.2),
                 ),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.75), width: 1.2),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x99000000), blurRadius: 14, offset: Offset(0, 6)),
-                ],
-              ),
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // --- Header Trực Quan ---
@@ -241,7 +237,7 @@ class _MonitorOverlayState extends State<MonitorOverlay> {
 
                     const SizedBox(height: 7),
 
-                    // --- Thanh Hàng Đợi 3 Pill ở Đáy ---
+                    // --- Thanh Trạng Thái 4 Pill ở Đáy (Queue, Done, Drop, RAM) ---
                     Row(
                       children: [
                         Expanded(
@@ -253,7 +249,7 @@ class _MonitorOverlayState extends State<MonitorOverlay> {
                                 : Colors.white12,
                           ),
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: _queuePill(
                             '✅ Done: ${snap.doneTasks}',
@@ -261,7 +257,7 @@ class _MonitorOverlayState extends State<MonitorOverlay> {
                             borderColor: const Color(0xFF10B981).withValues(alpha: 0.35),
                           ),
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: _queuePill(
                             '🛡️ Drop: ${snap.droppedTasks}',
@@ -273,6 +269,19 @@ class _MonitorOverlayState extends State<MonitorOverlay> {
                             bold: snap.droppedTasks > 0,
                           ),
                         ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: _queuePill(
+                            snap.ramMb > 0 ? '💾 ${snap.ramMb.toStringAsFixed(0)}M' : '💾 RAM: --',
+                            color: snap.ramMb < 250
+                                ? const Color(0xFF38BDF8)
+                                : (snap.ramMb < 400 ? const Color(0xFFFBBF24) : const Color(0xFFEF4444)),
+                            borderColor: snap.ramMb >= 400
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.7)
+                                : Colors.white12,
+                            bold: snap.ramMb >= 400,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -280,7 +289,8 @@ class _MonitorOverlayState extends State<MonitorOverlay> {
               ),
             ),
           ),
-        );
+        ),
+      );
       },
     );
   }
@@ -688,20 +698,8 @@ class FrameChartPainter extends CustomPainter {
       cx += dashW + dashSpace;
     }
 
-    // Nhãn "16.7ms (60FPS)" bên phải vạch ngân sách
-    final tp = TextPainter(
-      text: const TextSpan(
-        text: '16.7ms (60FPS)',
-        style: TextStyle(
-          color: Color(0xFFFFE4E6),
-          fontSize: 7.5,
-          fontWeight: FontWeight.w800,
-          fontFamily: 'monospace',
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
+    // Nhãn "16.7ms (60FPS)" bên phải vạch ngân sách (dùng painter cache tĩnh để không tốn CPU vẽ lại)
+    final tp = _budgetTagPainter;
     final tagW = tp.width + 6;
     final tagH = tp.height + 2;
     final tagRect = RRect.fromRectAndRadius(
@@ -712,6 +710,25 @@ class FrameChartPainter extends CustomPainter {
     tp.paint(canvas, Offset(tagRect.left + 3, tagRect.top + 1));
   }
 
+  static final _budgetTagPainter = TextPainter(
+    text: const TextSpan(
+      text: '16.7ms (60FPS)',
+      style: TextStyle(
+        color: Color(0xFFFFE4E6),
+        fontSize: 7.5,
+        fontWeight: FontWeight.w800,
+        fontFamily: 'monospace',
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+
   @override
-  bool shouldRepaint(covariant FrameChartPainter oldDelegate) => true;
+  bool shouldRepaint(covariant FrameChartPainter oldDelegate) {
+    if (frameDurationsMs.length != oldDelegate.frameDurationsMs.length) return true;
+    for (int i = 0; i < frameDurationsMs.length; i++) {
+      if (frameDurationsMs[i] != oldDelegate.frameDurationsMs[i]) return true;
+    }
+    return false;
+  }
 }

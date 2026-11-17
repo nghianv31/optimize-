@@ -75,6 +75,7 @@ class DemoResult {
   final int dropped;
   final double peakTempC;
   final double throttledS;
+  final double peakRamMb;
   const DemoResult({
     required this.policy,
     required this.missedPct,
@@ -83,6 +84,7 @@ class DemoResult {
     required this.dropped,
     required this.peakTempC,
     required this.throttledS,
+    this.peakRamMb = 0.0,
   });
 
   Map<String, Object?> toJson() => {
@@ -93,5 +95,6 @@ class DemoResult {
         'dropped': dropped,
         'peakTempC': double.parse(peakTempC.toStringAsFixed(1)),
         'throttledS': double.parse(throttledS.toStringAsFixed(1)),
+        'peakRamMb': double.parse(peakRamMb.toStringAsFixed(1)),
       };
 }
